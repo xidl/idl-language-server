@@ -1,0 +1,17 @@
+{
+  "name": "l-language-client",
+  "version": "0.0.1",
+  "description": "VSCode part of the L language server",
+  "license": "MIT",
+  "dependencies": {
+    "vscode-languageclient": "9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^17.0.18",
+    "@types/vscode": "1.85.0",
+    "vscode-test": "^1.3.0"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  }
+}

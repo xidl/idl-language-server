@@ -8,6 +8,7 @@
     "Programming Languages",
     "Linters"
   ],
+  "packageManager": "pnpm@10.13.1",
   "keywords": [
     "idl",
     "language-server",
@@ -46,17 +47,17 @@
     "@types/glob": "8.1.0",
     "@types/mocha": "10.0.10",
     "@types/node": "22.10.2",
-    "@vscode/vsce": "^3.2.1",
-    "cross-env": "^7.0.2",
+    "@vscode/vsce": "^3.7.1",
+    "cross-env": "^7.0.3",
     "esbuild": "^0.24.2",
     "glob": "11.0.0",
     "mocha": "11.0.2",
     "oxfmt": "^0.24.0",
-    "oxlint": "^1.39.0",
-    "ts-loader": "^9.5.1",
+    "oxlint": "^1.56.0",
+    "ts-loader": "^9.5.4",
     "typescript": "5.4.5",
-    "vscode-test": "^1.4.0",
-    "vscode-uri": "^3.0.2"
+    "vscode-test": "^1.6.1",
+    "vscode-uri": "^3.1.0"
   },
   "contributes": {
     "languages": [

@@ -3,10 +3,10 @@ use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use axum::{
-    http::{header, StatusCode},
+    Router,
+    http::{StatusCode, header},
     response::{IntoResponse, Response},
     routing::get,
-    Router,
 };
 use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
@@ -20,7 +20,8 @@ use crate::{node_range, position_in_range};
 use ropey::Rope;
 
 const HTTP_ANNOTATION_QUERY: &str = "(annotation) @annotation";
-const INTERFACE_QUERY: &str = "(interface_def (interface_header (identifier) @interface.name)) @interface";
+const INTERFACE_QUERY: &str =
+    "(interface_def (interface_header (identifier) @interface.name)) @interface";
 const INTERFACE_NAME_QUERY: &str =
     "(interface_def (interface_header (identifier) @interface.name)) @interface";
 const SCALAR_HTML: &str = include_str!(concat!(env!("OUT_DIR"), "/scalar.standalone.html"));
@@ -266,11 +267,7 @@ async fn openapi_json_handler(state: Arc<PreviewState>) -> Response {
     }
 }
 
-async fn regenerate_openapi(
-    text: &str,
-    source_path: &Path,
-    out_dir: &Path,
-) -> anyhow::Result<()> {
+async fn regenerate_openapi(text: &str, source_path: &Path, out_dir: &Path) -> anyhow::Result<()> {
     tokio::fs::write(source_path, text).await?;
     let status = tokio::process::Command::new("xidlc")
         .arg("--lang")

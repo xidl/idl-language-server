@@ -397,9 +397,7 @@ impl LanguageServer for Backend {
         let on_interface = http_client::interface_at_position(&text, &rope, position);
         debug!(
             "code_action: uri={} relevant={} on_interface={}",
-            uri,
-            relevant,
-            on_interface
+            uri, relevant, on_interface
         );
         if !relevant {
             return Ok(None);
@@ -410,9 +408,15 @@ impl LanguageServer for Backend {
 
         let is_running = self.preview_map.contains_key(uri.as_str());
         let (title, command) = if is_running {
-            ("$(debug-stop) stop http client", http_client::CMD_STOP_HTTP_CLIENT)
+            (
+                "$(debug-stop) stop http client",
+                http_client::CMD_STOP_HTTP_CLIENT,
+            )
         } else {
-            ("$(play) start http client", http_client::CMD_START_HTTP_CLIENT)
+            (
+                "$(play) start http client",
+                http_client::CMD_START_HTTP_CLIENT,
+            )
         };
 
         let action = CodeAction {

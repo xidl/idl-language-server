@@ -14,9 +14,11 @@ struct Backend {
     client: Client,
     document_map: DashMap<String, Rope>,
     semantic_tokens_map: DashMap<String, Vec<SemanticToken>>,
+    preview_map: DashMap<String, http_client::PreviewHandle>,
 }
 
 mod doc;
+mod http_client;
 
 const TOKEN_TYPE_NAMESPACE: u32 = 0;
 const TOKEN_TYPE_TYPE: u32 = 1;
@@ -149,6 +151,26 @@ impl LanguageServer for Backend {
                 rename_provider: Some(OneOf::Left(true)),
                 hover_provider: Some(HoverProviderCapability::Simple(true)),
                 folding_range_provider: Some(FoldingRangeProviderCapability::Simple(true)),
+                code_action_provider: Some(CodeActionProviderCapability::Options(
+                    CodeActionOptions {
+                        code_action_kinds: Some(vec![
+                            CodeActionKind::QUICKFIX,
+                            CodeActionKind::REFACTOR,
+                        ]),
+                        resolve_provider: Some(false),
+                        work_done_progress_options: WorkDoneProgressOptions::default(),
+                    },
+                )),
+                execute_command_provider: Some(ExecuteCommandOptions {
+                    commands: vec![
+                        http_client::CMD_START_HTTP_CLIENT.to_string(),
+                        http_client::CMD_STOP_HTTP_CLIENT.to_string(),
+                    ],
+                    work_done_progress_options: WorkDoneProgressOptions::default(),
+                }),
+                code_lens_provider: Some(CodeLensOptions {
+                    resolve_provider: Some(false),
+                }),
                 semantic_tokens_provider: Some(
                     SemanticTokensServerCapabilities::SemanticTokensRegistrationOptions(
                         SemanticTokensRegistrationOptions {
@@ -226,6 +248,13 @@ impl LanguageServer for Backend {
             uri: params.text_document.uri,
         })
         .await;
+    }
+
+    async fn did_close(&self, params: DidCloseTextDocumentParams) {
+        let uri = params.text_document.uri.to_string();
+        if let Some((_, preview)) = self.preview_map.remove(&uri) {
+            preview.stop();
+        }
     }
 
     async fn semantic_tokens_full(
@@ -350,8 +379,191 @@ impl LanguageServer for Backend {
             None => return Ok(None),
         };
         let text = rope.to_string();
-        let hover = doc::build_hover(&text, &rope, &uri, position);
-        Ok(hover)
+        let doc_hover = doc::build_hover(&text, &rope, &uri, position);
+        let preview_hover = self.build_preview_hover(&text, &rope, &uri, position);
+        Ok(merge_hover(doc_hover, preview_hover))
+    }
+
+    async fn code_action(&self, params: CodeActionParams) -> Result<Option<CodeActionResponse>> {
+        let uri = params.text_document.uri;
+        let rope = match self.document_map.get(uri.as_str()) {
+            Some(rope) => rope,
+            None => return Ok(None),
+        };
+        let text = rope.to_string();
+        let position = params.range.start;
+
+        let relevant = http_client::document_is_http_relevant(&text);
+        let on_interface = http_client::interface_at_position(&text, &rope, position);
+        debug!(
+            "code_action: uri={} relevant={} on_interface={}",
+            uri,
+            relevant,
+            on_interface
+        );
+        if !relevant {
+            return Ok(None);
+        }
+        if !on_interface {
+            return Ok(None);
+        }
+
+        let is_running = self.preview_map.contains_key(uri.as_str());
+        let (title, command) = if is_running {
+            ("$(debug-stop) stop http client", http_client::CMD_STOP_HTTP_CLIENT)
+        } else {
+            ("$(play) start http client", http_client::CMD_START_HTTP_CLIENT)
+        };
+
+        let action = CodeAction {
+            title: title.to_string(),
+            kind: Some(CodeActionKind::QUICKFIX),
+            command: Some(Command {
+                title: title.to_string(),
+                command: command.to_string(),
+                arguments: Some(vec![serde_json::Value::String(uri.to_string())]),
+            }),
+            ..CodeAction::default()
+        };
+
+        Ok(Some(vec![CodeActionOrCommand::CodeAction(action)]))
+    }
+
+    async fn execute_command(
+        &self,
+        params: ExecuteCommandParams,
+    ) -> Result<Option<serde_json::Value>> {
+        let mut args = params.arguments;
+        let uri_value = args.pop();
+        let uri = match uri_value.and_then(|value| value.as_str().map(|s| s.to_string())) {
+            Some(uri) => uri,
+            None => {
+                self.client
+                    .show_message(MessageType::ERROR, "Missing document URI")
+                    .await;
+                return Ok(None);
+            }
+        };
+
+        match params.command.as_str() {
+            http_client::CMD_START_HTTP_CLIENT => {
+                if self.preview_map.contains_key(&uri) {
+                    return Ok(None);
+                }
+                let rope = match self.document_map.get(&uri) {
+                    Some(rope) => rope,
+                    None => {
+                        self.client
+                            .show_message(MessageType::ERROR, "Document not available")
+                            .await;
+                        return Ok(None);
+                    }
+                };
+                let text = rope.to_string();
+                match http_client::start_preview(&text).await {
+                    Ok(preview) => {
+                        let url = preview.scalar_url.clone();
+                        self.preview_map.insert(uri, preview);
+                        self.client
+                            .show_message(MessageType::INFO, format!("HTTP client preview: {url}"))
+                            .await;
+                    }
+                    Err(err) => {
+                        self.client
+                            .show_message(
+                                MessageType::ERROR,
+                                format!("Failed to start http client: {err}"),
+                            )
+                            .await;
+                    }
+                }
+            }
+            http_client::CMD_STOP_HTTP_CLIENT => {
+                if let Some((_, preview)) = self.preview_map.remove(&uri) {
+                    preview.stop();
+                    self.client
+                        .show_message(MessageType::INFO, "HTTP client preview stopped")
+                        .await;
+                }
+            }
+            _ => {}
+        }
+
+        Ok(None)
+    }
+
+    async fn code_lens(&self, params: CodeLensParams) -> Result<Option<Vec<CodeLens>>> {
+        let uri = params.text_document.uri;
+        let rope = match self.document_map.get(uri.as_str()) {
+            Some(rope) => rope,
+            None => return Ok(None),
+        };
+        let text = rope.to_string();
+        if !http_client::document_is_http_relevant(&text) {
+            return Ok(None);
+        }
+
+        let positions = http_client::interface_name_positions(&text, &rope);
+        if positions.is_empty() {
+            return Ok(None);
+        }
+
+        let is_running = self.preview_map.contains_key(uri.as_str());
+        let mut lenses: Vec<CodeLens> = Vec::new();
+
+        if is_running {
+            if let Some(preview) = self.preview_map.get(uri.as_str()) {
+                let open_title = "$(link-external) open scalar web";
+                let stop_title = "$(debug-stop) stop http client";
+                for position in positions {
+                    lenses.push(CodeLens {
+                        range: Range {
+                            start: position,
+                            end: position,
+                        },
+                        command: Some(Command {
+                            title: open_title.to_string(),
+                            command: "vscode.open".to_string(),
+                            arguments: Some(vec![serde_json::Value::String(
+                                preview.scalar_url.clone(),
+                            )]),
+                        }),
+                        data: None,
+                    });
+                    lenses.push(CodeLens {
+                        range: Range {
+                            start: position,
+                            end: position,
+                        },
+                        command: Some(Command {
+                            title: stop_title.to_string(),
+                            command: http_client::CMD_STOP_HTTP_CLIENT.to_string(),
+                            arguments: Some(vec![serde_json::Value::String(uri.to_string())]),
+                        }),
+                        data: None,
+                    });
+                }
+            }
+        } else {
+            let title = "$(play) start http client";
+            let command = http_client::CMD_START_HTTP_CLIENT;
+            for position in positions {
+                lenses.push(CodeLens {
+                    range: Range {
+                        start: position,
+                        end: position,
+                    },
+                    command: Some(Command {
+                        title: title.to_string(),
+                        command: command.to_string(),
+                        arguments: Some(vec![serde_json::Value::String(uri.to_string())]),
+                    }),
+                    data: None,
+                });
+            }
+        }
+
+        Ok(Some(lenses))
     }
 
     async fn did_change_configuration(&self, _: DidChangeConfigurationParams) {
@@ -370,6 +582,7 @@ async fn main() {
         client: _client,
         document_map: DashMap::new(),
         semantic_tokens_map: DashMap::new(),
+        preview_map: DashMap::new(),
     })
     .finish();
 
@@ -408,6 +621,23 @@ impl Backend {
         self.client
             .publish_diagnostics(item.uri, diagnostics, None)
             .await;
+        if let Some(preview) = self.preview_map.get(&uri) {
+            preview.request_regen(item.text);
+        }
+    }
+
+    fn build_preview_hover(
+        &self,
+        text: &str,
+        rope: &Rope,
+        uri: &Url,
+        position: Position,
+    ) -> Option<String> {
+        let preview = self.preview_map.get(uri.as_str())?;
+        if !http_client::interface_at_position(text, rope, position) {
+            return None;
+        }
+        Some(format!("[Open Scalar UI]({})", preview.scalar_url))
     }
 
     fn build_semantic_tokens(&self, uri: &str) -> Option<Vec<SemanticToken>> {
@@ -419,6 +649,56 @@ impl Backend {
         let rope = Rope::from_str(text);
         let tokens = build_highlight_tokens(text, &rope);
         self.semantic_tokens_map.insert(uri.to_string(), tokens);
+    }
+}
+
+fn merge_hover(base: Option<Hover>, extra: Option<String>) -> Option<Hover> {
+    match (base, extra) {
+        (None, None) => None,
+        (Some(hover), None) => Some(hover),
+        (None, Some(extra)) => Some(Hover {
+            contents: HoverContents::Markup(MarkupContent {
+                kind: MarkupKind::Markdown,
+                value: extra,
+            }),
+            range: None,
+        }),
+        (Some(hover), Some(extra)) => {
+            let mut value = hover_contents_to_markdown(&hover.contents);
+            if !value.is_empty() {
+                value.push_str("\n\n");
+            }
+            value.push_str(&extra);
+            Some(Hover {
+                contents: HoverContents::Markup(MarkupContent {
+                    kind: MarkupKind::Markdown,
+                    value,
+                }),
+                range: hover.range,
+            })
+        }
+    }
+}
+
+fn hover_contents_to_markdown(contents: &HoverContents) -> String {
+    match contents {
+        HoverContents::Scalar(marked) => match marked {
+            MarkedString::String(value) => value.clone(),
+            MarkedString::LanguageString(value) => {
+                format!("```{}\n{}\n```", value.language, value.value)
+            }
+        },
+        HoverContents::Markup(content) => content.value.clone(),
+        HoverContents::Array(values) => values
+            .iter()
+            .map(|value| match value {
+                MarkedString::String(text) => text.clone(),
+                MarkedString::LanguageString(value) => {
+                    format!("```{}\n{}\n```", value.language, value.value)
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n\n"),
     }
 }
 

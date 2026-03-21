@@ -13,7 +13,7 @@ use xidl_parser::parser::parser_text;
 
 use super::{GotoSymbol, GotoSymbolKind, build_goto_symbols, node_range, position_in_range};
 
-mod http;
+pub(crate) mod http;
 
 const HOVER_QUERY: &str = include_str!("../../queries/hover_docs.scm");
 

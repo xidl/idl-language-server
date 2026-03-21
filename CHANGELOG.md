@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/xidl/idl-language-server/compare/v0.6.0...v0.7.0) (2026-03-21)
+
+
+### Features
+
+* impl rename ([8298dd2](https://github.com/xidl/idl-language-server/commit/8298dd21c006c1e66fe1ee2ba5654529591b9cea))
+
 ## [0.6.0](https://github.com/xidl/idl-language-server/compare/v0.5.1...v0.6.0) (2026-03-21)
 
 

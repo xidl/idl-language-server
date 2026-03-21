@@ -1,11 +1,10 @@
-use std::env;
-
 use dashmap::DashMap;
 use log::{debug, warn};
 use ropey::Rope;
+use std::env;
 use tower_lsp::jsonrpc::Result;
-use tower_lsp::lsp_types::*;
 use tower_lsp::lsp_types::request::{GotoDeclarationParams, GotoDeclarationResponse};
+use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService, Server};
 use tree_sitter::{Node, Parser, Query, QueryCursor, StreamingIterator};
 use tree_sitter_highlight::{HighlightConfiguration, HighlightEvent, Highlighter};
@@ -16,6 +15,8 @@ struct Backend {
     document_map: DashMap<String, Rope>,
     semantic_tokens_map: DashMap<String, Vec<SemanticToken>>,
 }
+
+mod doc;
 
 const TOKEN_TYPE_NAMESPACE: u32 = 0;
 const TOKEN_TYPE_TYPE: u32 = 1;
@@ -116,7 +117,6 @@ const DOCUMENT_SYMBOL_QUERY: &str = include_str!("../queries/document_symbols.sc
 const DIAGNOSTICS_QUERY: &str = include_str!("../queries/diagnostics.scm");
 const FOLDING_QUERY: &str = include_str!("../queries/folding_ranges.scm");
 const GOTO_QUERY: &str = include_str!("../queries/goto_symbols.scm");
-
 #[tower_lsp::async_trait]
 impl LanguageServer for Backend {
     async fn initialize(&self, _: InitializeParams) -> Result<InitializeResult> {
@@ -147,6 +147,7 @@ impl LanguageServer for Backend {
                 declaration_provider: Some(DeclarationCapability::Simple(true)),
                 references_provider: Some(OneOf::Left(true)),
                 rename_provider: Some(OneOf::Left(true)),
+                hover_provider: Some(HoverProviderCapability::Simple(true)),
                 folding_range_provider: Some(FoldingRangeProviderCapability::Simple(true)),
                 semantic_tokens_provider: Some(
                     SemanticTokensServerCapabilities::SemanticTokensRegistrationOptions(
@@ -260,10 +261,7 @@ impl LanguageServer for Backend {
         Ok(Some(DocumentSymbolResponse::Nested(symbols)))
     }
 
-    async fn folding_range(
-        &self,
-        params: FoldingRangeParams,
-    ) -> Result<Option<Vec<FoldingRange>>> {
+    async fn folding_range(&self, params: FoldingRangeParams) -> Result<Option<Vec<FoldingRange>>> {
         let uri = params.text_document.uri.to_string();
         let rope = match self.document_map.get(&uri) {
             Some(rope) => rope,
@@ -342,6 +340,18 @@ impl LanguageServer for Backend {
         let text = rope.to_string();
         let symbols = build_goto_symbols(&text, &rope);
         Ok(rename_workspace_edit(&symbols, &uri, position, &new_name))
+    }
+
+    async fn hover(&self, params: HoverParams) -> Result<Option<Hover>> {
+        let uri = params.text_document_position_params.text_document.uri;
+        let position = params.text_document_position_params.position;
+        let rope = match self.document_map.get(uri.as_str()) {
+            Some(rope) => rope,
+            None => return Ok(None),
+        };
+        let text = rope.to_string();
+        let hover = doc::build_hover(&text, &rope, &uri, position);
+        Ok(hover)
     }
 
     async fn did_change_configuration(&self, _: DidChangeConfigurationParams) {
@@ -572,8 +582,14 @@ fn build_diagnostics(text: &str) -> Vec<Diagnostic> {
             continue;
         }
         let range = Range {
-            start: Position::new(capture.node.start_position().row as u32, capture.node.start_position().column as u32),
-            end: Position::new(capture.node.end_position().row as u32, capture.node.end_position().column as u32),
+            start: Position::new(
+                capture.node.start_position().row as u32,
+                capture.node.start_position().column as u32,
+            ),
+            end: Position::new(
+                capture.node.end_position().row as u32,
+                capture.node.end_position().column as u32,
+            ),
         };
         diagnostics.push(Diagnostic {
             range,
@@ -772,11 +788,7 @@ fn goto_declaration_locations(
     }]
 }
 
-fn reference_locations(
-    symbols: &[GotoSymbol],
-    uri: &Url,
-    position: Position,
-) -> Vec<Location> {
+fn reference_locations(symbols: &[GotoSymbol], uri: &Url, position: Position) -> Vec<Location> {
     let symbol = match symbol_at_position(symbols, position) {
         Some(symbol) => symbol,
         None => return Vec::new(),
@@ -829,7 +841,14 @@ fn rename_workspace_edit(
         return None;
     }
 
-    ranges.sort_by_key(|range| (range.start.line, range.start.character, range.end.line, range.end.character));
+    ranges.sort_by_key(|range| {
+        (
+            range.start.line,
+            range.start.character,
+            range.end.line,
+            range.end.character,
+        )
+    });
     ranges.dedup_by(|a, b| a.start == b.start && a.end == b.end);
 
     let edits: Vec<TextEdit> = ranges
@@ -854,7 +873,9 @@ fn rename_workspace_edit(
 }
 
 fn symbol_at_position<'a>(symbols: &'a [GotoSymbol], position: Position) -> Option<&'a GotoSymbol> {
-    symbols.iter().find(|symbol| position_in_range(position, symbol.selection_range))
+    symbols
+        .iter()
+        .find(|symbol| position_in_range(position, symbol.selection_range))
 }
 
 fn position_in_range(position: Position, range: Range) -> bool {
@@ -959,7 +980,9 @@ fn node_range(node: Node<'_>, rope: &Rope) -> Range {
 
 fn byte_to_position(rope: &Rope, byte: usize) -> Position {
     let line = rope.byte_to_line(byte);
-    let column = rope.byte_to_char(byte).saturating_sub(rope.line_to_char(line));
+    let column = rope
+        .byte_to_char(byte)
+        .saturating_sub(rope.line_to_char(line));
     Position::new(line as u32, column as u32)
 }
 
@@ -1282,5 +1305,27 @@ interface Bar {
             .get(&Url::parse("file:///test.idl").unwrap())
             .expect("missing edits");
         assert!(!edits.is_empty());
+    }
+
+    #[test]
+    fn hover_template_renders_http() {
+        let template = doc::load_hover_template("http.md").expect("missing hover template");
+        let mut env = minijinja::Environment::new();
+        env.add_template("hover", &template)
+            .expect("failed to add hover template");
+        let ctx = json!({
+            "doc": {
+                "name": "http",
+                "path": "http.md",
+            },
+            "symbol_name": "http",
+            "hir": json!(null),
+        });
+        let rendered = env
+            .get_template("hover")
+            .expect("template missing")
+            .render(ctx)
+            .expect("render failed");
+        assert!(rendered.contains("HTTP Mapping"));
     }
 }

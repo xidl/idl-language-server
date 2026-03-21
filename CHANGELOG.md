@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/xidl/idl-language-server/compare/v0.4.0...v0.5.0) (2026-03-21)
+
+
+### Features
+
+* remove useless code ([1a38086](https://github.com/xidl/idl-language-server/commit/1a380863bd4a4c4322f2eb58824f88a2a040dcc2))
+
 ## [0.4.0](https://github.com/xidl/idl-language-server/compare/v0.3.0...v0.4.0) (2026-03-21)
 
 

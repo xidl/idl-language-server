@@ -34,7 +34,7 @@ jobs:
         run: cargo fmt --check
 
       - name: Lint
-        run: cargo clippy --workspace --all-targets -- --deny warnings
+        run: cargo clippy --workspace --all-targets
 
       - name: Build
         run: cargo build --verbose

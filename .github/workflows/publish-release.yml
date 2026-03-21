@@ -138,7 +138,7 @@ jobs:
         with:
           files: |
             dist/*/*.tar.gz
-            dist/*.vsix
+            dist/*/*.vsix
           body_path: release/body.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,6 +1,6 @@
 {
   "name": "vscode-idl-language",
-  "version": "1.5.0",
+  "version": "0.4.0",
   "description": "IDL language server (VS Code extension)",
   "displayName": "IDL Language",
   "publisher": "cathaysia",
@@ -8,7 +8,7 @@
     "Programming Languages",
     "Linters"
   ],
-  "packageManager": "pnpm@10.13.1",
+  "packageManager": "pnpm@8.15.7",
   "keywords": [
     "idl",
     "language-server",
@@ -97,6 +97,5 @@
   "engines": {
     "vscode": "^1.66.0"
   },
-  "packageManager": "pnpm@8.15.7",
   "enabledApiProposals": []
 }

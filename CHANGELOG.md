@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.0](https://github.com/xidl/idl-language-server/compare/v0.3.0...v0.4.0) (2026-03-21)
+
+
+### Features
+
+* **package:** update ([b5ce047](https://github.com/xidl/idl-language-server/commit/b5ce04789756accb26e2ef6f2a6512f1331dfca7))
+
+
+### Bug Fixes
+
+* fix language ([b3235e3](https://github.com/xidl/idl-language-server/commit/b3235e3a0b356d4c76399dcbbf48cab710e44ad4))
+
 ## [0.3.0](https://github.com/xidl/idl-language-server/compare/v0.2.1...v0.3.0) (2026-03-21)
 
 

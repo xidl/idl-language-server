@@ -3,15 +3,24 @@
   "version": "1.5.0",
   "description": "IDL language server (VS Code extension)",
   "displayName": "IDL Language",
-  "publisher": "idl-language",
-  "categories": [],
-  "keywords": [
-    "language-server",
-    "tower-lsp"
+  "publisher": "cathaysia",
+  "categories": [
+    "Programming Languages",
+    "Linters"
   ],
-  "license": "MIT",
+  "keywords": [
+    "idl",
+    "language-server",
+    "lsp"
+  ],
+  "license": "Apache-2.0",
   "repository": {
-    "url": "https://github.com/IWANABETHATGUY/tower-lsp-boilerplate"
+    "type": "git",
+    "url": "https://github.com/xidl/idl-language-server.git"
+  },
+  "homepage": "https://github.com/xidl/idl-language-server",
+  "bugs": {
+    "url": "https://github.com/xidl/idl-language-server/issues"
   },
   "main": "./dist/extension.js",
   "files": [

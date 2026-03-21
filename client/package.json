@@ -2,7 +2,7 @@
   "name": "vscode-idl-language-client",
   "version": "0.0.1",
   "description": "VS Code client for the IDL language server",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "dependencies": {
     "vscode-languageclient": "9.0.1"
   },

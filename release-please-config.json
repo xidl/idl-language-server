@@ -7,6 +7,11 @@
       "release-type": "simple",
       "extra-files": [
         {
+          "path": "package.json",
+          "type": "json",
+          "jsonpath": "$.version"
+        },
+        {
           "path": "Cargo.toml",
           "type": "toml",
           "jsonpath": "$.package.version"

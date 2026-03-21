@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.6.0](https://github.com/xidl/idl-language-server/compare/v0.5.1...v0.6.0) (2026-03-21)
+
+
+### Features
+
+* add diagnostic and folding ([19974fb](https://github.com/xidl/idl-language-server/commit/19974fb3487c098b8f3dccf6153e4028e6de3ba5))
+* add goto define ([2e0f26d](https://github.com/xidl/idl-language-server/commit/2e0f26d36e2399029616c8bc410a38609f274a47))
+* support document symbol ([330d7f7](https://github.com/xidl/idl-language-server/commit/330d7f7f3f9f81826751fde9745f019b3662afae))
+
 ## [0.5.1](https://github.com/xidl/idl-language-server/compare/v0.5.0...v0.5.1) (2026-03-21)
 
 

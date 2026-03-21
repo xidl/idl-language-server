@@ -14,19 +14,29 @@ struct Backend {
     semantic_tokens_map: DashMap<String, Vec<SemanticToken>>,
 }
 
-const TOKEN_TYPE_COMMENT: u32 = 0;
-const TOKEN_TYPE_STRING: u32 = 1;
-const TOKEN_TYPE_NUMBER: u32 = 2;
-const TOKEN_TYPE_KEYWORD: u32 = 3;
-const TOKEN_TYPE_TYPE: u32 = 4;
-const TOKEN_TYPE_FUNCTION: u32 = 5;
-const TOKEN_TYPE_VARIABLE: u32 = 6;
+const TOKEN_TYPE_NAMESPACE: u32 = 0;
+const TOKEN_TYPE_TYPE: u32 = 1;
+const TOKEN_TYPE_CLASS: u32 = 2;
+const TOKEN_TYPE_ENUM: u32 = 3;
+const TOKEN_TYPE_INTERFACE: u32 = 4;
+const TOKEN_TYPE_STRUCT: u32 = 5;
+const TOKEN_TYPE_TYPE_PARAMETER: u32 = 6;
 const TOKEN_TYPE_PARAMETER: u32 = 7;
-const TOKEN_TYPE_PROPERTY: u32 = 8;
-const TOKEN_TYPE_ENUM_MEMBER: u32 = 9;
-const TOKEN_TYPE_OPERATOR: u32 = 10;
-const TOKEN_TYPE_NAMESPACE: u32 = 11;
-const TOKEN_TYPE_DECORATOR: u32 = 12;
+const TOKEN_TYPE_VARIABLE: u32 = 8;
+const TOKEN_TYPE_PROPERTY: u32 = 9;
+const TOKEN_TYPE_ENUM_MEMBER: u32 = 10;
+const TOKEN_TYPE_EVENT: u32 = 11;
+const TOKEN_TYPE_FUNCTION: u32 = 12;
+const TOKEN_TYPE_METHOD: u32 = 13;
+const TOKEN_TYPE_MACRO: u32 = 14;
+const TOKEN_TYPE_KEYWORD: u32 = 15;
+const TOKEN_TYPE_MODIFIER: u32 = 16;
+const TOKEN_TYPE_COMMENT: u32 = 17;
+const TOKEN_TYPE_STRING: u32 = 18;
+const TOKEN_TYPE_NUMBER: u32 = 19;
+const TOKEN_TYPE_REGEXP: u32 = 20;
+const TOKEN_TYPE_OPERATOR: u32 = 21;
+const TOKEN_TYPE_DECORATOR: u32 = 22;
 
 const HIGHLIGHT_NAMES: &[&str] = &[
     "comment.documentation",
@@ -140,18 +150,28 @@ impl LanguageServer for Backend {
                                 work_done_progress_options: WorkDoneProgressOptions::default(),
                                 legend: SemanticTokensLegend {
                                     token_types: vec![
+                                        SemanticTokenType::new("namespace"),
+                                        SemanticTokenType::new("type"),
+                                        SemanticTokenType::new("class"),
+                                        SemanticTokenType::new("enum"),
+                                        SemanticTokenType::new("interface"),
+                                        SemanticTokenType::new("struct"),
+                                        SemanticTokenType::new("typeParameter"),
+                                        SemanticTokenType::new("parameter"),
+                                        SemanticTokenType::new("variable"),
+                                        SemanticTokenType::new("property"),
+                                        SemanticTokenType::new("enumMember"),
+                                        SemanticTokenType::new("event"),
+                                        SemanticTokenType::new("function"),
+                                        SemanticTokenType::new("method"),
+                                        SemanticTokenType::new("macro"),
+                                        SemanticTokenType::new("keyword"),
+                                        SemanticTokenType::new("modifier"),
                                         SemanticTokenType::new("comment"),
                                         SemanticTokenType::new("string"),
                                         SemanticTokenType::new("number"),
-                                        SemanticTokenType::new("keyword"),
-                                        SemanticTokenType::new("type"),
-                                        SemanticTokenType::new("function"),
-                                        SemanticTokenType::new("variable"),
-                                        SemanticTokenType::new("parameter"),
-                                        SemanticTokenType::new("property"),
-                                        SemanticTokenType::new("enumMember"),
+                                        SemanticTokenType::new("regexp"),
                                         SemanticTokenType::new("operator"),
-                                        SemanticTokenType::new("namespace"),
                                         SemanticTokenType::new("decorator"),
                                     ],
                                     token_modifiers: vec![],
@@ -395,46 +415,58 @@ fn build_highlight_tokens(text: &str, rope: &Rope) -> Vec<SemanticToken> {
 }
 
 fn capture_to_token_type(capture: &str) -> Option<u32> {
-    if capture.starts_with("comment") {
-        return Some(TOKEN_TYPE_COMMENT);
+    match capture {
+        "comment.documentation"
+        | "comment.error"
+        | "comment.warning"
+        | "comment.todo"
+        | "comment.note"
+        | "comment" => Some(TOKEN_TYPE_COMMENT),
+        "string.documentation"
+        | "string.escape"
+        | "string.special"
+        | "string.special.symbol"
+        | "string.special.path"
+        | "string.special.url"
+        | "string" => Some(TOKEN_TYPE_STRING),
+        "string.regexp" => Some(TOKEN_TYPE_REGEXP),
+        "character.special" | "character" => Some(TOKEN_TYPE_STRING),
+        "number.float" | "number" | "boolean" => Some(TOKEN_TYPE_NUMBER),
+        "keyword.modifier" => Some(TOKEN_TYPE_MODIFIER),
+        "keyword.directive" => Some(TOKEN_TYPE_MACRO),
+        "keyword.directive.define"
+        | "keyword.conditional"
+        | "keyword.conditional.ternary"
+        | "keyword.exception"
+        | "keyword.import"
+        | "keyword.operator"
+        | "keyword.coroutine"
+        | "keyword.function"
+        | "keyword.repeat"
+        | "keyword.return"
+        | "keyword.debug"
+        | "keyword.type"
+        | "keyword" => Some(TOKEN_TYPE_KEYWORD),
+        "type.builtin" | "type.definition" | "type" | "tag" | "tag.builtin" | "tag.attribute"
+        | "tag.delimiter" => Some(TOKEN_TYPE_TYPE),
+        "function.macro" => Some(TOKEN_TYPE_MACRO),
+        "function.method" | "function.method.call" => Some(TOKEN_TYPE_METHOD),
+        "function.builtin" | "function.call" | "function" => Some(TOKEN_TYPE_FUNCTION),
+        "variable.parameter" | "variable.parameter.builtin" => Some(TOKEN_TYPE_PARAMETER),
+        "variable.member" | "property" => Some(TOKEN_TYPE_PROPERTY),
+        "variable.builtin" | "variable" | "label" => Some(TOKEN_TYPE_VARIABLE),
+        "constant.macro" => Some(TOKEN_TYPE_MACRO),
+        "constant.builtin" | "constant" => Some(TOKEN_TYPE_ENUM_MEMBER),
+        "operator"
+        | "punctuation.delimiter"
+        | "punctuation.bracket"
+        | "punctuation.special"
+        | "punctuation" => Some(TOKEN_TYPE_OPERATOR),
+        "module.builtin" | "module" => Some(TOKEN_TYPE_NAMESPACE),
+        "attribute.builtin" | "attribute" => Some(TOKEN_TYPE_DECORATOR),
+        "markup" | "diff" => None,
+        _ => None,
     }
-    if capture.starts_with("string") || capture.starts_with("character") {
-        return Some(TOKEN_TYPE_STRING);
-    }
-    if capture.starts_with("number") || capture == "boolean" {
-        return Some(TOKEN_TYPE_NUMBER);
-    }
-    if capture.starts_with("keyword") {
-        return Some(TOKEN_TYPE_KEYWORD);
-    }
-    if capture.starts_with("type") || capture.starts_with("tag") {
-        return Some(TOKEN_TYPE_TYPE);
-    }
-    if capture.starts_with("function") {
-        return Some(TOKEN_TYPE_FUNCTION);
-    }
-    if capture.starts_with("variable.parameter") {
-        return Some(TOKEN_TYPE_PARAMETER);
-    }
-    if capture.starts_with("variable.member") || capture.starts_with("property") {
-        return Some(TOKEN_TYPE_PROPERTY);
-    }
-    if capture.starts_with("variable") || capture == "label" {
-        return Some(TOKEN_TYPE_VARIABLE);
-    }
-    if capture.starts_with("constant") {
-        return Some(TOKEN_TYPE_ENUM_MEMBER);
-    }
-    if capture.starts_with("operator") || capture.starts_with("punctuation") {
-        return Some(TOKEN_TYPE_OPERATOR);
-    }
-    if capture.starts_with("module") {
-        return Some(TOKEN_TYPE_NAMESPACE);
-    }
-    if capture.starts_with("attribute") {
-        return Some(TOKEN_TYPE_DECORATOR);
-    }
-    None
 }
 
 struct TextDocumentChange<'a> {

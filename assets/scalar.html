@@ -17,5 +17,27 @@
 <script >
     {{ api-reference }}
 </script>
+<script>
+    (function() {
+        let lastSpec = null;
+        async function checkSpec() {
+            try {
+                const res = await fetch('/openapi.json', { cache: 'no-store' });
+                if (!res.ok) return;
+                const text = await res.text();
+                if (lastSpec === null) {
+                    lastSpec = text;
+                    return;
+                }
+                if (text !== lastSpec) {
+                    location.reload();
+                }
+            } catch (_) {
+                // ignore
+            }
+        }
+        setInterval(checkSpec, 1000);
+    })();
+</script>
 </body>
 </html>

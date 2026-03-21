@@ -140,7 +140,7 @@ impl LanguageServer for Backend {
                             text_document_registration_options: {
                                 TextDocumentRegistrationOptions {
                                     document_selector: Some(vec![DocumentFilter {
-                                        language: Some("l".to_string()),
+                                        language: Some("idl".to_string()),
                                         scheme: Some("file".to_string()),
                                         pattern: None,
                                     }]),

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/xidl/idl-language-server/compare/v0.7.0...v0.8.0) (2026-03-21)
+
+
+### Features
+
+* **ai:** add skill ([5b67bfc](https://github.com/xidl/idl-language-server/commit/5b67bfc7ef864c87afc2ef0bfaea0f304eea03bf))
+
 ## [0.7.0](https://github.com/xidl/idl-language-server/compare/v0.6.0...v0.7.0) (2026-03-21)
 
 

@@ -1,8 +1,8 @@
 use std::env;
 
 use dashmap::DashMap;
-use l_lang::{compile, find_node_at_offset, AstNode, CompileResult, Formatter, SymbolId, Type};
-use log::debug;
+use l_lang::{compile, find_node_at_offset, AstNode, CompileResult, SymbolId, Type};
+use log::{debug, warn};
 use ropey::Rope;
 use serde_json::Value;
 use tower_lsp::jsonrpc::Result;
@@ -313,9 +313,13 @@ impl Backend {
     fn format_text(&self, params: DocumentFormattingParams) -> Option<Vec<TextEdit>> {
         let uri = params.text_document.uri.to_string();
         let rope = self.document_map.get(&uri)?;
-        let semantic_result = self.semanticast_map.get(&uri)?;
-        let formatter = Formatter::new(80);
-        let formatted_text = formatter.format(semantic_result.program.file(), &rope.to_string());
+        let formatted_text = match xidlc::fmt::format_idl_source(&rope.to_string()) {
+            Ok(text) => text,
+            Err(err) => {
+                warn!("formatting failed for {}: {}", uri, err);
+                return None;
+            }
+        };
         Some(vec![TextEdit {
             range: Range {
                 start: Position::new(0, 0),

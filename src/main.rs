@@ -6,6 +6,7 @@ use ropey::Rope;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
 use tower_lsp::{LanguageServer, LspService, Server};
+use tree_sitter::{Node, Parser, Query, QueryCursor, StreamingIterator};
 use tree_sitter_highlight::{HighlightConfiguration, HighlightEvent, Highlighter};
 
 #[derive(Debug)]
@@ -109,6 +110,8 @@ const HIGHLIGHT_NAMES: &[&str] = &[
     "tag.delimiter",
 ];
 
+const DOCUMENT_SYMBOL_QUERY: &str = include_str!("../queries/document_symbols.scm");
+
 #[tower_lsp::async_trait]
 impl LanguageServer for Backend {
     async fn initialize(&self, _: InitializeParams) -> Result<InitializeResult> {
@@ -134,6 +137,7 @@ impl LanguageServer for Backend {
                 completion_provider: None,
 
                 workspace: None,
+                document_symbol_provider: Some(OneOf::Left(true)),
                 semantic_tokens_provider: Some(
                     SemanticTokensServerCapabilities::SemanticTokensRegistrationOptions(
                         SemanticTokensRegistrationOptions {
@@ -232,6 +236,20 @@ impl LanguageServer for Backend {
         Ok(self.format_text(params))
     }
 
+    async fn document_symbol(
+        &self,
+        params: DocumentSymbolParams,
+    ) -> Result<Option<DocumentSymbolResponse>> {
+        let uri = params.text_document.uri.to_string();
+        let rope = match self.document_map.get(&uri) {
+            Some(rope) => rope,
+            None => return Ok(None),
+        };
+        let text = rope.to_string();
+        let symbols = build_document_symbols(&text, &rope);
+        Ok(Some(DocumentSymbolResponse::Nested(symbols)))
+    }
+
     async fn did_change_configuration(&self, _: DidChangeConfigurationParams) {
         debug!("configuration changed!");
     }
@@ -292,6 +310,223 @@ impl Backend {
         let tokens = build_highlight_tokens(text, &rope);
         self.semantic_tokens_map.insert(uri.to_string(), tokens);
     }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+struct NodeKey {
+    start: usize,
+    end: usize,
+}
+
+#[derive(Clone, Debug)]
+struct SymbolEntry {
+    name: String,
+    kind: SymbolKind,
+    range: Range,
+    selection_range: Range,
+    start_byte: usize,
+    interface_key: Option<NodeKey>,
+    is_interface: bool,
+    is_op: bool,
+}
+
+fn build_document_symbols(text: &str, rope: &Rope) -> Vec<DocumentSymbol> {
+    let mut parser = Parser::new();
+    if parser.set_language(&tree_sitter_idl::language()).is_err() {
+        debug!("failed to set tree-sitter language for document symbols");
+        return Vec::new();
+    }
+    let tree = match parser.parse(text, None) {
+        Some(tree) => tree,
+        None => {
+            debug!("failed to parse document for document symbols");
+            return Vec::new();
+        }
+    };
+
+    let query = match Query::new(&tree_sitter_idl::language(), DOCUMENT_SYMBOL_QUERY) {
+        Ok(query) => query,
+        Err(err) => {
+            debug!("failed to compile document symbol query: {err}");
+            return Vec::new();
+        }
+    };
+
+    let mut cursor = QueryCursor::new();
+    let capture_names = query.capture_names();
+    let mut entries: Vec<SymbolEntry> = Vec::new();
+
+    let mut matches = cursor.matches(&query, tree.root_node(), text.as_bytes());
+    while let Some(m) = matches.next() {
+        let mut symbol_kind: Option<SymbolKind> = None;
+        let mut symbol_node: Option<Node<'_>> = None;
+        let mut name_node: Option<Node<'_>> = None;
+        let mut is_interface = false;
+        let mut is_op = false;
+
+        for capture in m.captures {
+            let capture_name = match capture_names.get(capture.index as usize) {
+                Some(name) => *name,
+                None => continue,
+            };
+            match capture_name {
+                "struct" => {
+                    symbol_kind = Some(SymbolKind::STRUCT);
+                    symbol_node = Some(capture.node);
+                }
+                "struct.name" => name_node = Some(capture.node),
+                "enum" => {
+                    symbol_kind = Some(SymbolKind::ENUM);
+                    symbol_node = Some(capture.node);
+                }
+                "enum.name" => name_node = Some(capture.node),
+                "bitmask" => {
+                    symbol_kind = Some(SymbolKind::ENUM);
+                    symbol_node = Some(capture.node);
+                }
+                "bitmask.name" => name_node = Some(capture.node),
+                "interface" => {
+                    symbol_kind = Some(SymbolKind::INTERFACE);
+                    symbol_node = Some(capture.node);
+                    is_interface = true;
+                }
+                "interface.name" => name_node = Some(capture.node),
+                "op" => {
+                    symbol_kind = Some(SymbolKind::METHOD);
+                    symbol_node = Some(capture.node);
+                    is_op = true;
+                }
+                "op.name" => name_node = Some(capture.node),
+                _ => {}
+            }
+        }
+
+        let (symbol_kind, symbol_node, name_node) = match (symbol_kind, symbol_node, name_node) {
+            (Some(kind), Some(symbol_node), Some(name_node)) => (kind, symbol_node, name_node),
+            _ => continue,
+        };
+        let name = match name_node.utf8_text(text.as_bytes()) {
+            Ok(name) => name.trim().to_string(),
+            Err(_) => continue,
+        };
+        if name.is_empty() {
+            continue;
+        }
+
+        let interface_key = if is_op {
+            find_enclosing_interface_key(symbol_node)
+        } else if is_interface {
+            Some(node_key(symbol_node))
+        } else {
+            None
+        };
+
+        entries.push(SymbolEntry {
+            name,
+            kind: symbol_kind,
+            range: node_range(symbol_node, rope),
+            selection_range: node_range(name_node, rope),
+            start_byte: symbol_node.start_byte(),
+            interface_key,
+            is_interface,
+            is_op,
+        });
+    }
+
+    build_document_symbol_tree(entries)
+}
+
+fn build_document_symbol_tree(entries: Vec<SymbolEntry>) -> Vec<DocumentSymbol> {
+    let mut interfaces: Vec<(NodeKey, usize, DocumentSymbol)> = Vec::new();
+    let mut interface_index: std::collections::HashMap<NodeKey, usize> =
+        std::collections::HashMap::new();
+    let mut top_level: Vec<(usize, DocumentSymbol)> = Vec::new();
+
+    for entry in entries.iter().filter(|entry| entry.is_interface) {
+        let symbol = DocumentSymbol {
+            name: entry.name.clone(),
+            detail: None,
+            kind: entry.kind,
+            tags: None,
+            deprecated: None,
+            range: entry.range,
+            selection_range: entry.selection_range,
+            children: Some(Vec::new()),
+        };
+        let key = entry.interface_key.unwrap_or(NodeKey {
+            start: entry.start_byte,
+            end: entry.start_byte,
+        });
+        let idx = interfaces.len();
+        interfaces.push((key, entry.start_byte, symbol));
+        interface_index.insert(key, idx);
+    }
+
+    for entry in entries.into_iter().filter(|entry| !entry.is_interface) {
+        let symbol = DocumentSymbol {
+            name: entry.name,
+            detail: None,
+            kind: entry.kind,
+            tags: None,
+            deprecated: None,
+            range: entry.range,
+            selection_range: entry.selection_range,
+            children: None,
+        };
+
+        if entry.is_op {
+            if let Some(key) = entry.interface_key {
+                if let Some(&idx) = interface_index.get(&key) {
+                    if let Some(children) = interfaces[idx].2.children.as_mut() {
+                        children.push(symbol);
+                        continue;
+                    }
+                }
+            }
+        }
+
+        top_level.push((entry.start_byte, symbol));
+    }
+
+    let mut merged: Vec<(usize, DocumentSymbol)> = interfaces
+        .into_iter()
+        .map(|(_, start, symbol)| (start, symbol))
+        .collect();
+    merged.extend(top_level);
+    merged.sort_by_key(|(start, _)| *start);
+
+    merged.into_iter().map(|(_, symbol)| symbol).collect()
+}
+
+fn find_enclosing_interface_key(node: Node<'_>) -> Option<NodeKey> {
+    let mut current = node.parent();
+    while let Some(parent) = current {
+        if parent.kind() == "interface_def" || parent.kind() == "interface_forward_dcl" {
+            return Some(node_key(parent));
+        }
+        current = parent.parent();
+    }
+    None
+}
+
+fn node_key(node: Node<'_>) -> NodeKey {
+    NodeKey {
+        start: node.start_byte(),
+        end: node.end_byte(),
+    }
+}
+
+fn node_range(node: Node<'_>, rope: &Rope) -> Range {
+    Range {
+        start: byte_to_position(rope, node.start_byte()),
+        end: byte_to_position(rope, node.end_byte()),
+    }
+}
+
+fn byte_to_position(rope: &Rope, byte: usize) -> Position {
+    let line = rope.byte_to_line(byte);
+    let column = rope.byte_to_char(byte).saturating_sub(rope.line_to_char(line));
+    Position::new(line as u32, column as u32)
 }
 
 fn build_highlight_tokens(text: &str, rope: &Rope) -> Vec<SemanticToken> {
@@ -472,4 +707,44 @@ fn capture_to_token_type(capture: &str) -> Option<u32> {
 struct TextDocumentChange<'a> {
     uri: String,
     text: &'a str,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn document_symbols_builds_hierarchy() {
+        let source = r#"
+interface RobotControl {
+    void command(Command com);
+};
+
+struct Hello {
+    long value;
+};
+
+enum Color {
+    RED,
+    GREEN
+};
+
+bitmask Flags {
+    @position(0) a,
+};
+"#;
+        let rope = Rope::from_str(source);
+        let symbols = build_document_symbols(source, &rope);
+
+        let interface = symbols.iter().find(|symbol| symbol.name == "RobotControl");
+        assert!(interface.is_some());
+
+        let interface = interface.unwrap();
+        let children = interface.children.as_ref().unwrap();
+        assert!(children.iter().any(|child| child.name == "command"));
+
+        assert!(symbols.iter().any(|symbol| symbol.name == "Hello"));
+        assert!(symbols.iter().any(|symbol| symbol.name == "Color"));
+        assert!(symbols.iter().any(|symbol| symbol.name == "Flags"));
+    }
 }

@@ -620,6 +620,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 
 [[package]]
+name = "idl-language-server"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "dashmap 6.1.0",
+ "env_logger",
+ "im-rc",
+ "log",
+ "oxc_index",
+ "ropey",
+ "rust-lapper",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tower-lsp",
+ "tree-sitter",
+ "tree-sitter-highlight",
+ "tree-sitter-idl",
+ "xidlc",
+]
+
+[[package]]
 name = "idna"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -709,29 +732,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "875a5a69ac2bab1a891711cf5eccbec1ce0341ea805560dcd90b7a2e925132e8"
 dependencies = [
  "jiff-tzdb",
-]
-
-[[package]]
-name = "l-language-server"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "dashmap 6.1.0",
- "env_logger",
- "im-rc",
- "log",
- "oxc_index",
- "ropey",
- "rust-lapper",
- "serde",
- "serde_json",
- "thiserror",
- "tokio",
- "tower-lsp",
- "tree-sitter",
- "tree-sitter-highlight",
- "tree-sitter-idl",
- "xidlc",
 ]
 
 [[package]]

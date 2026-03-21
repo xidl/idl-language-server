@@ -1,7 +1,9 @@
 {
-  "name": "l-language-server",
+  "name": "vscode-idl-language",
   "version": "1.5.0",
-  "description": "L language server",
+  "description": "IDL language server (VS Code extension)",
+  "displayName": "IDL Language",
+  "publisher": "idl-language",
   "categories": [],
   "keywords": [
     "language-server",
@@ -12,11 +14,18 @@
     "url": "https://github.com/IWANABETHATGUY/tower-lsp-boilerplate"
   },
   "main": "./dist/extension.js",
+  "files": [
+    "dist/**",
+    "server/**",
+    "package.json",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "postinstall": "cd client && pnpm i",
-    "compile": "npm run check-types && node esbuild.js --production",
+    "compile": "pnpm run check-types && node esbuild.js --production",
     "check-types": "tsc --noEmit",
-    "watch": "npm-run-all -p watch:*",
+    "watch": "node scripts/watch.mjs",
     "watch:esbuild": "node esbuild.js --watch",
     "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
     "package": "vsce package --no-dependencies",
@@ -33,7 +42,6 @@
     "esbuild": "^0.24.2",
     "glob": "11.0.0",
     "mocha": "11.0.2",
-    "npm-run-all": "^4.1.5",
     "oxfmt": "^0.24.0",
     "oxlint": "^1.39.0",
     "ts-loader": "^9.5.1",
@@ -44,17 +52,17 @@
   "contributes": {
     "languages": [
       {
-        "id": "l",
+        "id": "idl",
         "extensions": [
-          ".l"
+          ".idl"
         ]
       }
     ],
     "configuration": {
       "type": "object",
-      "title": "l-language-server",
+      "title": "idl-language-server",
       "properties": {
-        "l-language-server.trace.server": {
+        "idl-language-server.trace.server": {
           "type": "string",
           "scope": "window",
           "enum": [
@@ -74,7 +82,7 @@
     }
   },
   "activationEvents": [
-    "onLanguage:l"
+    "onLanguage:idl"
   ],
   "engines": {
     "vscode": "^1.66.0"

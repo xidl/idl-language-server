@@ -4,6 +4,8 @@
  * ------------------------------------------------------------------------------------------ */
 
 import { workspace, ExtensionContext, window } from "vscode";
+import * as fs from "node:fs";
+import * as path from "node:path";
 
 import {
   Executable,
@@ -14,9 +16,27 @@ import {
 
 let client: LanguageClient;
 
-export async function activate(_context: ExtensionContext) {
-  const traceOutputChannel = window.createOutputChannel("L Language Server trace");
-  const command = process.env.SERVER_PATH || "l-language-server";
+function resolveServerCommand(context: ExtensionContext): string {
+  const envPath = process.env.IDL_LANGUAGE_SERVER_PATH || process.env.SERVER_PATH;
+  if (envPath && fs.existsSync(envPath)) {
+    return envPath;
+  }
+
+  const binName =
+    process.platform === "win32" ? "idl-language-server.exe" : "idl-language-server";
+  const bundledPath = context.asAbsolutePath(path.join("server", binName));
+  if (fs.existsSync(bundledPath)) {
+    return bundledPath;
+  }
+
+  return binName;
+}
+
+export async function activate(context: ExtensionContext) {
+  const traceOutputChannel = window.createOutputChannel(
+    "IDL Language Server trace",
+  );
+  const command = resolveServerCommand(context);
   const run: Executable = {
     command,
     options: {
@@ -36,18 +56,18 @@ export async function activate(_context: ExtensionContext) {
   // Options to control the language client
   let clientOptions: LanguageClientOptions = {
     // Register the server for plain text documents
-    documentSelector: [{ scheme: "file", language: "l" }],
+    documentSelector: [{ scheme: "file", language: "idl" }],
     synchronize: {
-      // Notify the server about file changes to '.clientrc files contained in the workspace
-      fileEvents: workspace.createFileSystemWatcher("**/.clientrc"),
+      // Notify the server about file changes to '.idlrc' files contained in the workspace
+      fileEvents: workspace.createFileSystemWatcher("**/.idlrc"),
     },
     traceOutputChannel,
   };
 
   // Create the language client and start the client.
   client = new LanguageClient(
-    "l-language-server",
-    "L language server",
+    "idl-language-server",
+    "IDL language server",
     serverOptions,
     clientOptions,
   );

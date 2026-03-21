@@ -18,12 +18,15 @@ jobs:
           - runner: ubuntu-latest
             target: x86_64-unknown-linux-musl
             use_cross: true
+            vsce_target: linux-x64
           - runner: ubuntu-latest
             target: x86_64-pc-windows-gnu
             use_cross: true
+            vsce_target: win32-x64
           - runner: macos-latest
             target: aarch64-apple-darwin
             use_cross: false
+            vsce_target: darwin-arm64
     name: build-lsp-${{ matrix.platform.target }}
     runs-on: ${{ matrix.platform.runner }}
     steps:
@@ -61,11 +64,47 @@ jobs:
           fi
           tar -czf dist/idl-language-server-${{ matrix.platform.target }}.tar.gz -C target/${{ matrix.platform.target }}/release ${BIN_NAME}
 
-      - name: Upload lsp artifact
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8.15.7
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build VS Code extension bundle
+        run: node esbuild.js --production
+
+      - name: Package VS Code extension
+        run: |
+          set -euo pipefail
+
+          rm -rf server
+          mkdir -p server
+
+          tar -xzf "dist/idl-language-server-${{ matrix.platform.target }}.tar.gz" -C server
+          if [ "${{ matrix.platform.vsce_target }}" != "win32-x64" ]; then
+            chmod +x server/idl-language-server
+          fi
+
+          pnpm exec vsce package \
+            --no-dependencies \
+            --target "${{ matrix.platform.vsce_target }}" \
+            --out "dist/vscode-idl-language-${{ matrix.platform.vsce_target }}.vsix"
+
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: idl-language-server-${{ matrix.platform.target }}
-          path: dist/*.tar.gz
+          path: |
+            dist/*.tar.gz
+            dist/*.vsix
 
   release:
     needs:
@@ -99,7 +138,9 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/*/*.tar.gz
+          files: |
+            dist/*/*.tar.gz
+            dist/*.vsix
           body_path: release/body.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

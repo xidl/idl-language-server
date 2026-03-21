@@ -1,7 +1,7 @@
 {
-  "name": "l-language-client",
+  "name": "vscode-idl-language-client",
   "version": "0.0.1",
-  "description": "VSCode part of the L language server",
+  "description": "VS Code client for the IDL language server",
   "license": "MIT",
   "dependencies": {
     "vscode-languageclient": "9.0.1"

@@ -13,8 +13,7 @@ use tokio::task::JoinHandle;
 use tokio::time::Instant;
 use tower_lsp::lsp_types::Position;
 use tree_sitter::{Parser, Query, QueryCursor, StreamingIterator};
-use utoipa::openapi::OpenApi;
-use utoipa_scalar::{Scalar, Servable};
+use utoipa_scalar::Scalar;
 
 use crate::doc::http as http_annotations;
 use crate::{node_range, position_in_range};
@@ -178,14 +177,13 @@ pub async fn start_preview(text: &str) -> anyhow::Result<PreviewHandle> {
 
     regenerate_openapi(text, &source_path, &out_dir).await?;
     let openapi_path = out_dir.join("openapi.json");
-    let openapi = load_openapi(&openapi_path).await?;
 
     let state = Arc::new(PreviewState { openapi_path });
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await?;
     let addr = listener.local_addr()?;
     let scalar_url = format!("http://{}/scalar", addr);
 
-    let app = build_router(state.clone(), openapi);
+    let app = build_router(state.clone());
 
     let (shutdown_tx, shutdown_rx) = oneshot::channel();
     let server_task = tokio::spawn(async move {
@@ -238,16 +236,19 @@ async fn run_regen_loop(
     }
 }
 
-fn build_router(state: Arc<PreviewState>, openapi: OpenApi) -> Router {
+fn build_router(state: Arc<PreviewState>) -> Router {
     let openapi_state = state.clone();
-    let app = Router::new().route(
-        "/openapi.json",
-        get(move || openapi_json_handler(openapi_state.clone())),
-    );
-
-    let scalar = Scalar::with_url("/scalar", openapi).custom_html(SCALAR_HTML);
-
-    app.merge(scalar).with_state(state)
+    let scalar_state = state.clone();
+    Router::new()
+        .route(
+            "/openapi.json",
+            get(move || openapi_json_handler(openapi_state.clone())),
+        )
+        .route(
+            "/scalar",
+            get(move || scalar_ui_handler(scalar_state.clone())),
+        )
+        .with_state(state)
 }
 
 async fn openapi_json_handler(state: Arc<PreviewState>) -> Response {
@@ -285,10 +286,28 @@ async fn regenerate_openapi(
     Ok(())
 }
 
-async fn load_openapi(path: &Path) -> anyhow::Result<OpenApi> {
-    let content = tokio::fs::read_to_string(path).await?;
-    let openapi: OpenApi = serde_json::from_str(&content)?;
-    Ok(openapi)
+async fn scalar_ui_handler(state: Arc<PreviewState>) -> Response {
+    let content = match tokio::fs::read_to_string(&state.openapi_path).await {
+        Ok(content) => content,
+        Err(err) => {
+            log::warn!("failed to read openapi.json: {err}");
+            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+        }
+    };
+    let openapi: serde_json::Value = match serde_json::from_str(&content) {
+        Ok(openapi) => openapi,
+        Err(err) => {
+            log::warn!("failed to parse openapi.json: {err}");
+            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+        }
+    };
+    let html = Scalar::new(openapi).custom_html(SCALAR_HTML).to_html();
+    (
+        StatusCode::OK,
+        [(header::CONTENT_TYPE, "text/html; charset=utf-8")],
+        html,
+    )
+        .into_response()
 }
 
 fn contains_http_annotations(text: &str) -> bool {

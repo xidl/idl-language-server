@@ -64,16 +64,14 @@ jobs:
           fi
           tar -czf dist/idl-language-server-${{ matrix.platform.target }}.tar.gz -C target/${{ matrix.platform.target }}/release ${BIN_NAME}
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 8.15.7
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

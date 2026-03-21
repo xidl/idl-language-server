@@ -5,6 +5,7 @@ use log::{debug, warn};
 use ropey::Rope;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
+use tower_lsp::lsp_types::request::{GotoDeclarationParams, GotoDeclarationResponse};
 use tower_lsp::{Client, LanguageServer, LspService, Server};
 use tree_sitter::{Node, Parser, Query, QueryCursor, StreamingIterator};
 use tree_sitter_highlight::{HighlightConfiguration, HighlightEvent, Highlighter};
@@ -114,6 +115,7 @@ const HIGHLIGHT_NAMES: &[&str] = &[
 const DOCUMENT_SYMBOL_QUERY: &str = include_str!("../queries/document_symbols.scm");
 const DIAGNOSTICS_QUERY: &str = include_str!("../queries/diagnostics.scm");
 const FOLDING_QUERY: &str = include_str!("../queries/folding_ranges.scm");
+const GOTO_QUERY: &str = include_str!("../queries/goto_symbols.scm");
 
 #[tower_lsp::async_trait]
 impl LanguageServer for Backend {
@@ -141,6 +143,9 @@ impl LanguageServer for Backend {
 
                 workspace: None,
                 document_symbol_provider: Some(OneOf::Left(true)),
+                definition_provider: Some(OneOf::Left(true)),
+                declaration_provider: Some(DeclarationCapability::Simple(true)),
+                references_provider: Some(OneOf::Left(true)),
                 folding_range_provider: Some(FoldingRangeProviderCapability::Simple(true)),
                 semantic_tokens_provider: Some(
                     SemanticTokensServerCapabilities::SemanticTokensRegistrationOptions(
@@ -266,6 +271,63 @@ impl LanguageServer for Backend {
         let text = rope.to_string();
         let ranges = build_folding_ranges(&text, &rope);
         Ok(Some(ranges))
+    }
+
+    async fn goto_definition(
+        &self,
+        params: GotoDefinitionParams,
+    ) -> Result<Option<GotoDefinitionResponse>> {
+        let uri = params.text_document_position_params.text_document.uri;
+        let position = params.text_document_position_params.position;
+        let rope = match self.document_map.get(uri.as_str()) {
+            Some(rope) => rope,
+            None => return Ok(None),
+        };
+        let text = rope.to_string();
+        let symbols = build_goto_symbols(&text, &rope);
+        let locations = goto_definition_locations(&symbols, &uri, position);
+        if locations.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(GotoDefinitionResponse::Array(locations)))
+        }
+    }
+
+    async fn goto_declaration(
+        &self,
+        params: GotoDeclarationParams,
+    ) -> Result<Option<GotoDeclarationResponse>> {
+        let uri = params.text_document_position_params.text_document.uri;
+        let position = params.text_document_position_params.position;
+        let rope = match self.document_map.get(uri.as_str()) {
+            Some(rope) => rope,
+            None => return Ok(None),
+        };
+        let text = rope.to_string();
+        let symbols = build_goto_symbols(&text, &rope);
+        let locations = goto_declaration_locations(&symbols, &uri, position);
+        if locations.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(GotoDeclarationResponse::Array(locations)))
+        }
+    }
+
+    async fn references(&self, params: ReferenceParams) -> Result<Option<Vec<Location>>> {
+        let uri = params.text_document_position.text_document.uri;
+        let position = params.text_document_position.position;
+        let rope = match self.document_map.get(uri.as_str()) {
+            Some(rope) => rope,
+            None => return Ok(None),
+        };
+        let text = rope.to_string();
+        let symbols = build_goto_symbols(&text, &rope);
+        let locations = reference_locations(&symbols, &uri, position);
+        if locations.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(locations))
+        }
     }
 
     async fn did_change_configuration(&self, _: DidChangeConfigurationParams) {
@@ -563,6 +625,178 @@ fn build_folding_ranges(text: &str, rope: &Rope) -> Vec<FoldingRange> {
         });
     }
     ranges
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum GotoSymbolKind {
+    Definition,
+    Declaration,
+}
+
+#[derive(Clone, Debug)]
+struct GotoSymbol {
+    name: String,
+    kind: GotoSymbolKind,
+    range: Range,
+    selection_range: Range,
+}
+
+fn build_goto_symbols(text: &str, rope: &Rope) -> Vec<GotoSymbol> {
+    let mut parser = Parser::new();
+    if parser.set_language(&tree_sitter_idl::language()).is_err() {
+        debug!("failed to set tree-sitter language for goto symbols");
+        return Vec::new();
+    }
+    let tree = match parser.parse(text, None) {
+        Some(tree) => tree,
+        None => {
+            debug!("failed to parse document for goto symbols");
+            return Vec::new();
+        }
+    };
+
+    let query = match Query::new(&tree_sitter_idl::language(), GOTO_QUERY) {
+        Ok(query) => query,
+        Err(err) => {
+            debug!("failed to compile goto query: {err}");
+            return Vec::new();
+        }
+    };
+
+    let mut cursor = QueryCursor::new();
+    let capture_names = query.capture_names();
+    let mut matches = cursor.matches(&query, tree.root_node(), text.as_bytes());
+    let mut symbols = Vec::new();
+
+    while let Some(m) = matches.next() {
+        let mut symbol_kind: Option<GotoSymbolKind> = None;
+        let mut symbol_node: Option<Node<'_>> = None;
+        let mut name_node: Option<Node<'_>> = None;
+
+        for capture in m.captures {
+            let capture_name = match capture_names.get(capture.index as usize) {
+                Some(name) => *name,
+                None => continue,
+            };
+            match capture_name {
+                "def" => {
+                    symbol_kind = Some(GotoSymbolKind::Definition);
+                    symbol_node = Some(capture.node);
+                }
+                "def.name" => name_node = Some(capture.node),
+                "decl" => {
+                    symbol_kind = Some(GotoSymbolKind::Declaration);
+                    symbol_node = Some(capture.node);
+                }
+                "decl.name" => name_node = Some(capture.node),
+                _ => {}
+            }
+        }
+
+        let (symbol_kind, symbol_node, name_node) = match (symbol_kind, symbol_node, name_node) {
+            (Some(kind), Some(symbol_node), Some(name_node)) => (kind, symbol_node, name_node),
+            _ => continue,
+        };
+        let name = match name_node.utf8_text(text.as_bytes()) {
+            Ok(name) => name.trim().to_string(),
+            Err(_) => continue,
+        };
+        if name.is_empty() {
+            continue;
+        }
+
+        symbols.push(GotoSymbol {
+            name,
+            kind: symbol_kind,
+            range: node_range(symbol_node, rope),
+            selection_range: node_range(name_node, rope),
+        });
+    }
+
+    symbols
+}
+
+fn goto_definition_locations(
+    symbols: &[GotoSymbol],
+    uri: &Url,
+    position: Position,
+) -> Vec<Location> {
+    let symbol = match symbol_at_position(symbols, position) {
+        Some(symbol) => symbol,
+        None => return Vec::new(),
+    };
+    if symbol.kind != GotoSymbolKind::Declaration {
+        return Vec::new();
+    }
+    symbols
+        .iter()
+        .filter(|candidate| {
+            candidate.kind == GotoSymbolKind::Definition && candidate.name == symbol.name
+        })
+        .map(|candidate| Location {
+            uri: uri.clone(),
+            range: candidate.selection_range,
+        })
+        .collect()
+}
+
+fn goto_declaration_locations(
+    symbols: &[GotoSymbol],
+    uri: &Url,
+    position: Position,
+) -> Vec<Location> {
+    let symbol = match symbol_at_position(symbols, position) {
+        Some(symbol) => symbol,
+        None => return Vec::new(),
+    };
+    if symbol.kind != GotoSymbolKind::Declaration {
+        return Vec::new();
+    }
+    vec![Location {
+        uri: uri.clone(),
+        range: symbol.selection_range,
+    }]
+}
+
+fn reference_locations(
+    symbols: &[GotoSymbol],
+    uri: &Url,
+    position: Position,
+) -> Vec<Location> {
+    let symbol = match symbol_at_position(symbols, position) {
+        Some(symbol) => symbol,
+        None => return Vec::new(),
+    };
+    if symbol.kind != GotoSymbolKind::Definition {
+        return Vec::new();
+    }
+    symbols
+        .iter()
+        .filter(|candidate| {
+            candidate.kind == GotoSymbolKind::Declaration && candidate.name == symbol.name
+        })
+        .map(|candidate| Location {
+            uri: uri.clone(),
+            range: candidate.selection_range,
+        })
+        .collect()
+}
+
+fn symbol_at_position<'a>(symbols: &'a [GotoSymbol], position: Position) -> Option<&'a GotoSymbol> {
+    symbols.iter().find(|symbol| position_in_range(position, symbol.selection_range))
+}
+
+fn position_in_range(position: Position, range: Range) -> bool {
+    if position.line < range.start.line || position.line > range.end.line {
+        return false;
+    }
+    if position.line == range.start.line && position.character < range.start.character {
+        return false;
+    }
+    if position.line == range.end.line && position.character > range.end.character {
+        return false;
+    }
+    true
 }
 
 fn build_document_symbol_tree(entries: Vec<SymbolEntry>) -> Vec<DocumentSymbol> {
@@ -896,5 +1130,55 @@ module M {
         let rope = Rope::from_str(source);
         let ranges = build_folding_ranges(source, &rope);
         assert!(!ranges.is_empty());
+    }
+
+    #[test]
+    fn goto_definition_resolves_from_declaration() {
+        let source = r#"
+struct Foo {
+    long value;
+};
+
+interface Bar {
+    void takeFoo(Foo f);
+};
+"#;
+        let rope = Rope::from_str(source);
+        let symbols = build_goto_symbols(source, &rope);
+        let decl = symbols
+            .iter()
+            .find(|symbol| symbol.kind == GotoSymbolKind::Declaration && symbol.name == "Foo")
+            .expect("declaration not found");
+        let locations = goto_definition_locations(
+            &symbols,
+            &Url::parse("file:///test.idl").unwrap(),
+            decl.selection_range.start,
+        );
+        assert!(!locations.is_empty());
+    }
+
+    #[test]
+    fn references_resolve_from_definition_only() {
+        let source = r#"
+struct Foo {
+    long value;
+};
+
+interface Bar {
+    void takeFoo(Foo f);
+};
+"#;
+        let rope = Rope::from_str(source);
+        let symbols = build_goto_symbols(source, &rope);
+        let def = symbols
+            .iter()
+            .find(|symbol| symbol.kind == GotoSymbolKind::Definition && symbol.name == "Foo")
+            .expect("definition not found");
+        let locations = reference_locations(
+            &symbols,
+            &Url::parse("file:///test.idl").unwrap(),
+            def.selection_range.start,
+        );
+        assert!(!locations.is_empty());
     }
 }

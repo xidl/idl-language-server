@@ -146,6 +146,7 @@ impl LanguageServer for Backend {
                 definition_provider: Some(OneOf::Left(true)),
                 declaration_provider: Some(DeclarationCapability::Simple(true)),
                 references_provider: Some(OneOf::Left(true)),
+                rename_provider: Some(OneOf::Left(true)),
                 folding_range_provider: Some(FoldingRangeProviderCapability::Simple(true)),
                 semantic_tokens_provider: Some(
                     SemanticTokensServerCapabilities::SemanticTokensRegistrationOptions(
@@ -328,6 +329,19 @@ impl LanguageServer for Backend {
         } else {
             Ok(Some(locations))
         }
+    }
+
+    async fn rename(&self, params: RenameParams) -> Result<Option<WorkspaceEdit>> {
+        let uri = params.text_document_position.text_document.uri;
+        let position = params.text_document_position.position;
+        let new_name = params.new_name;
+        let rope = match self.document_map.get(uri.as_str()) {
+            Some(rope) => rope,
+            None => return Ok(None),
+        };
+        let text = rope.to_string();
+        let symbols = build_goto_symbols(&text, &rope);
+        Ok(rename_workspace_edit(&symbols, &uri, position, &new_name))
     }
 
     async fn did_change_configuration(&self, _: DidChangeConfigurationParams) {
@@ -782,6 +796,63 @@ fn reference_locations(
         .collect()
 }
 
+fn rename_workspace_edit(
+    symbols: &[GotoSymbol],
+    uri: &Url,
+    position: Position,
+    new_name: &str,
+) -> Option<WorkspaceEdit> {
+    let symbol = symbol_at_position(symbols, position)?;
+    let mut ranges = Vec::new();
+
+    match symbol.kind {
+        GotoSymbolKind::Definition => {
+            ranges.push(symbol.selection_range);
+            for candidate in symbols.iter().filter(|candidate| {
+                candidate.kind == GotoSymbolKind::Declaration && candidate.name == symbol.name
+            }) {
+                ranges.push(candidate.selection_range);
+            }
+        }
+        GotoSymbolKind::Declaration => {
+            for candidate in symbols.iter().filter(|candidate| {
+                (candidate.kind == GotoSymbolKind::Definition
+                    || candidate.kind == GotoSymbolKind::Declaration)
+                    && candidate.name == symbol.name
+            }) {
+                ranges.push(candidate.selection_range);
+            }
+        }
+    }
+
+    if ranges.is_empty() {
+        return None;
+    }
+
+    ranges.sort_by_key(|range| (range.start.line, range.start.character, range.end.line, range.end.character));
+    ranges.dedup_by(|a, b| a.start == b.start && a.end == b.end);
+
+    let edits: Vec<TextEdit> = ranges
+        .into_iter()
+        .map(|range| TextEdit {
+            range,
+            new_text: new_name.to_string(),
+        })
+        .collect();
+
+    if edits.is_empty() {
+        return None;
+    }
+
+    let mut changes = std::collections::HashMap::new();
+    changes.insert(uri.clone(), edits);
+    Some(WorkspaceEdit {
+        changes: Some(changes),
+        document_changes: None,
+        change_annotations: None,
+    })
+}
+
 fn symbol_at_position<'a>(symbols: &'a [GotoSymbol], position: Position) -> Option<&'a GotoSymbol> {
     symbols.iter().find(|symbol| position_in_range(position, symbol.selection_range))
 }
@@ -1180,5 +1251,36 @@ interface Bar {
             def.selection_range.start,
         );
         assert!(!locations.is_empty());
+    }
+
+    #[test]
+    fn rename_produces_edits_for_definition_and_references() {
+        let source = r#"
+struct Foo {
+    long value;
+};
+
+interface Bar {
+    void takeFoo(Foo f);
+};
+"#;
+        let rope = Rope::from_str(source);
+        let symbols = build_goto_symbols(source, &rope);
+        let def = symbols
+            .iter()
+            .find(|symbol| symbol.kind == GotoSymbolKind::Definition && symbol.name == "Foo")
+            .expect("definition not found");
+        let edit = rename_workspace_edit(
+            &symbols,
+            &Url::parse("file:///test.idl").unwrap(),
+            def.selection_range.start,
+            "FooRenamed",
+        )
+        .expect("rename edit missing");
+        let changes = edit.changes.expect("missing changes");
+        let edits = changes
+            .get(&Url::parse("file:///test.idl").unwrap())
+            .expect("missing edits");
+        assert!(!edits.is_empty());
     }
 }

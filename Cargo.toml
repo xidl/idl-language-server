@@ -20,5 +20,6 @@ oxc_index = "0.36.0"
 anyhow = "1.0.93"
 thiserror = "2.0.3"
 rust-lapper = "1.1.0"
-
-
+tree-sitter = "0.25.0"
+tree-sitter-highlight = "0.25.0"
+tree-sitter-idl = "3.17.0"

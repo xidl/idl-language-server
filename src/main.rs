@@ -1,31 +1,121 @@
+use std::env;
+
 use dashmap::DashMap;
-use l_lang::{
-    compile, find_node_at_offset, AstNode, CompileResult, Formatter, SymbolId, SymbolKind, Type,
-};
+use l_lang::{compile, find_node_at_offset, AstNode, CompileResult, Formatter, SymbolId, Type};
 use log::debug;
 use ropey::Rope;
 use serde_json::Value;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService, Server};
+use tree_sitter_highlight::{HighlightConfiguration, HighlightEvent, Highlighter};
 
 #[derive(Debug)]
 struct Backend {
     client: Client,
     document_map: DashMap<String, Rope>,
     semanticast_map: DashMap<String, CompileResult>,
+    semantic_tokens_map: DashMap<String, Vec<SemanticToken>>,
 }
+
+const TOKEN_TYPE_COMMENT: u32 = 0;
+const TOKEN_TYPE_STRING: u32 = 1;
+const TOKEN_TYPE_NUMBER: u32 = 2;
+const TOKEN_TYPE_KEYWORD: u32 = 3;
+const TOKEN_TYPE_TYPE: u32 = 4;
+const TOKEN_TYPE_FUNCTION: u32 = 5;
+const TOKEN_TYPE_VARIABLE: u32 = 6;
+const TOKEN_TYPE_PARAMETER: u32 = 7;
+const TOKEN_TYPE_PROPERTY: u32 = 8;
+const TOKEN_TYPE_ENUM_MEMBER: u32 = 9;
+const TOKEN_TYPE_OPERATOR: u32 = 10;
+const TOKEN_TYPE_NAMESPACE: u32 = 11;
+const TOKEN_TYPE_DECORATOR: u32 = 12;
+
+const HIGHLIGHT_NAMES: &[&str] = &[
+    "comment.documentation",
+    "comment.error",
+    "comment.warning",
+    "comment.todo",
+    "comment.note",
+    "string.documentation",
+    "string.escape",
+    "string.regexp",
+    "string.special",
+    "string.special.symbol",
+    "string.special.path",
+    "string.special.url",
+    "character.special",
+    "number.float",
+    "type.builtin",
+    "type.definition",
+    "variable.builtin",
+    "variable.parameter",
+    "variable.parameter.builtin",
+    "variable.member",
+    "constant.builtin",
+    "constant.macro",
+    "function.builtin",
+    "function.call",
+    "function.macro",
+    "function.method",
+    "function.method.call",
+    "attribute.builtin",
+    "module.builtin",
+    "keyword.directive",
+    "keyword.directive.define",
+    "keyword.conditional",
+    "keyword.conditional.ternary",
+    "keyword.exception",
+    "keyword.import",
+    "keyword.operator",
+    "keyword.coroutine",
+    "keyword.function",
+    "keyword.modifier",
+    "keyword.repeat",
+    "keyword.return",
+    "keyword.debug",
+    "keyword.type",
+    "punctuation.delimiter",
+    "punctuation.bracket",
+    "punctuation.special",
+    "comment",
+    "string",
+    "character",
+    "number",
+    "boolean",
+    "keyword",
+    "type",
+    "variable",
+    "constant",
+    "function",
+    "attribute",
+    "module",
+    "property",
+    "operator",
+    "punctuation",
+    "markup",
+    "diff",
+    "label",
+    "tag",
+    "tag.builtin",
+    "tag.attribute",
+    "tag.delimiter",
+];
 
 #[tower_lsp::async_trait]
 impl LanguageServer for Backend {
     async fn initialize(&self, _: InitializeParams) -> Result<InitializeResult> {
         Ok(InitializeResult {
-            server_info: None,
+            server_info: Some(ServerInfo {
+                name: env!("CARGO_PKG_NAME").to_string(),
+                version: Some(env!("CARGO_PKG_VERSION").to_string()),
+            }),
             offset_encoding: None,
 
             capabilities: ServerCapabilities {
                 document_formatting_provider: Some(OneOf::Left(true)),
-                inlay_hint_provider: Some(OneOf::Left(true)),
+                inlay_hint_provider: None,
                 text_document_sync: Some(TextDocumentSyncCapability::Options(
                     TextDocumentSyncOptions {
                         open_close: Some(true),
@@ -36,25 +126,10 @@ impl LanguageServer for Backend {
                         ..Default::default()
                     },
                 )),
-                completion_provider: Some(CompletionOptions {
-                    resolve_provider: Some(false),
-                    trigger_characters: Some(vec![".".to_string()]),
-                    work_done_progress_options: Default::default(),
-                    all_commit_characters: None,
-                    completion_item: None,
-                }),
-                execute_command_provider: Some(ExecuteCommandOptions {
-                    commands: vec!["dummy.do_something".to_string()],
-                    work_done_progress_options: Default::default(),
-                }),
+                completion_provider: None,
+                execute_command_provider: None,
 
-                workspace: Some(WorkspaceServerCapabilities {
-                    workspace_folders: Some(WorkspaceFoldersServerCapabilities {
-                        supported: Some(true),
-                        change_notifications: Some(OneOf::Left(true)),
-                    }),
-                    file_operations: None,
-                }),
+                workspace: None,
                 semantic_tokens_provider: Some(
                     SemanticTokensServerCapabilities::SemanticTokensRegistrationOptions(
                         SemanticTokensRegistrationOptions {
@@ -71,15 +146,23 @@ impl LanguageServer for Backend {
                                 work_done_progress_options: WorkDoneProgressOptions::default(),
                                 legend: SemanticTokensLegend {
                                     token_types: vec![
-                                        SemanticTokenType::FUNCTION,
-                                        SemanticTokenType::VARIABLE,
-                                        SemanticTokenType::PARAMETER,
-                                        SemanticTokenType::STRUCT,
-                                        SemanticTokenType::PROPERTY,
+                                        SemanticTokenType::new("comment"),
+                                        SemanticTokenType::new("string"),
+                                        SemanticTokenType::new("number"),
+                                        SemanticTokenType::new("keyword"),
+                                        SemanticTokenType::new("type"),
+                                        SemanticTokenType::new("function"),
+                                        SemanticTokenType::new("variable"),
+                                        SemanticTokenType::new("parameter"),
+                                        SemanticTokenType::new("property"),
+                                        SemanticTokenType::new("enumMember"),
+                                        SemanticTokenType::new("operator"),
+                                        SemanticTokenType::new("namespace"),
+                                        SemanticTokenType::new("decorator"),
                                     ],
                                     token_modifiers: vec![],
                                 },
-                                range: Some(true),
+                                range: Some(false),
                                 full: Some(SemanticTokensFullOptions::Bool(true)),
                             },
                             static_registration_options: StaticRegistrationOptions::default(),
@@ -161,15 +244,8 @@ impl LanguageServer for Backend {
         &self,
         params: SemanticTokensRangeParams,
     ) -> Result<Option<SemanticTokensRangeResult>> {
-        let uri = params.text_document.uri.to_string();
-        let range = params.range;
-        let semantic_tokens = self.build_semantic_tokens_range(&uri, range);
-        Ok(semantic_tokens.map(|data| {
-            SemanticTokensRangeResult::Tokens(SemanticTokens {
-                result_id: None,
-                data,
-            })
-        }))
+        let _ = params;
+        Ok(None)
     }
 
     async fn inlay_hint(
@@ -226,6 +302,7 @@ async fn main() {
         client,
         semanticast_map: DashMap::new(),
         document_map: DashMap::new(),
+        semantic_tokens_map: DashMap::new(),
     })
     .finish();
 
@@ -621,180 +698,182 @@ impl Backend {
         self.semanticast_map
             .insert(item.uri.clone(), compile_result);
         self.document_map.insert(item.uri.clone(), rope);
+        self.refresh_semantic_tokens(&item.uri, item.text);
     }
 
     fn build_semantic_tokens(&self, uri: &str) -> Option<Vec<SemanticToken>> {
-        let semantic_result = self.semanticast_map.get(uri)?;
-        let rope = self.document_map.get(uri)?;
+        let tokens = self.semantic_tokens_map.get(uri)?;
+        Some(tokens.clone())
+    }
 
-        // Collect all tokens from symbols and references
-        // Token type indices correspond to LEGEND_TYPE order:
-        // 0: FUNCTION, 1: VARIABLE, 2: PARAMETER, 3: STRUCT, 4: PROPERTY (field)
-        let mut incomplete_tokens: Vec<(usize, usize, u32)> = Vec::new(); // (start, length, token_type)
+    fn refresh_semantic_tokens(&self, uri: &str, text: &str) {
+        let rope = Rope::from_str(text);
+        let tokens = build_highlight_tokens(text, &rope);
+        self.semantic_tokens_map.insert(uri.to_string(), tokens);
+    }
+}
 
-        // Add symbol definitions
-        for (symbol_id, span) in semantic_result.semantic.symbol_spans.iter_enumerated() {
-            let kind = semantic_result.semantic.get_symbol_kind(symbol_id);
-            let token_type = match kind {
-                SymbolKind::Function => 0,  // FUNCTION
-                SymbolKind::Variable => 1,  // VARIABLE
-                SymbolKind::Parameter => 2, // PARAMETER
-                SymbolKind::Struct => 3,    // STRUCT
-                SymbolKind::Field => 4,     // PROPERTY
-            };
-            incomplete_tokens.push((
-                span.start as usize,
-                (span.end - span.start) as usize,
-                token_type,
-            ));
+fn build_highlight_tokens(text: &str, rope: &Rope) -> Vec<SemanticToken> {
+    let mut config = match HighlightConfiguration::new(
+        tree_sitter_idl::language(),
+        "idl",
+        tree_sitter_idl::HIGHLIGHTS_QUERY,
+        "",
+        "",
+    ) {
+        Ok(config) => config,
+        Err(err) => {
+            debug!("failed to create highlight config: {err}");
+            return Vec::new();
         }
+    };
+    config.configure(HIGHLIGHT_NAMES);
 
-        // Add references (they reference symbols, so use the symbol's kind)
-        for (ref_id, span) in semantic_result.semantic.reference_spans.iter_enumerated() {
-            if let Some(symbol_id) = semantic_result.semantic.references[ref_id] {
-                let kind = semantic_result.semantic.get_symbol_kind(symbol_id);
-                let token_type = match kind {
-                    SymbolKind::Function => 0,  // FUNCTION
-                    SymbolKind::Variable => 1,  // VARIABLE
-                    SymbolKind::Parameter => 2, // PARAMETER
-                    SymbolKind::Struct => 3,    // STRUCT
-                    SymbolKind::Field => 4,     // PROPERTY
-                };
+    let mut highlighter = Highlighter::new();
+    let events = match highlighter.highlight(&config, text.as_bytes(), None, |_| None) {
+        Ok(events) => events,
+        Err(err) => {
+            debug!("failed to highlight source: {err}");
+            return Vec::new();
+        }
+    };
+
+    let mut highlight_stack: Vec<usize> = Vec::new();
+    let mut raw_spans: Vec<(usize, usize, usize)> = Vec::new();
+    let mut highlight_events = 0usize;
+
+    for event in events {
+        match event {
+            Ok(HighlightEvent::HighlightStart(highlight)) => {
+                highlight_events += 1;
+                highlight_stack.push(highlight.0);
+            }
+            Ok(HighlightEvent::HighlightEnd) => {
+                let _ = highlight_stack.pop();
+            }
+            Ok(HighlightEvent::Source { start, end }) => {
+                if let Some(&highlight_index) = highlight_stack.last() {
+                    if end > start {
+                        raw_spans.push((start, end, highlight_index));
+                    }
+                }
+            }
+            Err(err) => {
+                debug!("highlight event error: {err}");
+                return Vec::new();
+            }
+        }
+    }
+    if highlight_events == 0 {
+        debug!("no highlight events produced for source");
+    }
+
+    let mut incomplete_tokens: Vec<(u32, u32, u32, u32)> = Vec::new();
+    for (start, end, highlight_index) in raw_spans {
+        let capture_name = match HIGHLIGHT_NAMES.get(highlight_index) {
+            Some(name) => *name,
+            None => continue,
+        };
+        let token_type = match capture_to_token_type(capture_name) {
+            Some(token_type) => token_type,
+            None => continue,
+        };
+
+        let mut cur = start;
+        while cur < end {
+            let line = match rope.try_byte_to_line(cur) {
+                Ok(line) => line,
+                Err(_) => break,
+            };
+            let line_start = match rope.try_line_to_byte(line) {
+                Ok(byte) => byte,
+                Err(_) => break,
+            };
+            let line_len = rope.line(line).len_bytes();
+            let line_end = line_start + line_len;
+            let seg_end = end.min(line_end);
+            let char_offset = cur.saturating_sub(line_start);
+            let length = seg_end.saturating_sub(cur);
+            if length > 0 {
                 incomplete_tokens.push((
-                    span.start as usize,
-                    (span.end - span.start) as usize,
+                    line as u32,
+                    char_offset as u32,
+                    length as u32,
                     token_type,
                 ));
             }
+            cur = seg_end;
         }
-
-        // Sort by start position
-        incomplete_tokens.sort_by(|a, b| a.0.cmp(&b.0));
-
-        // Convert to LSP SemanticToken format with delta encoding
-        let mut pre_line: u32 = 0;
-        let mut pre_start: u32 = 0;
-
-        let semantic_tokens = incomplete_tokens
-            .iter()
-            .filter_map(|(start, length, token_type)| {
-                // Convert byte offset to line and character
-                let line = rope.try_byte_to_line(*start).ok()? as u32;
-                let line_start_byte = rope.try_line_to_byte(line as usize).ok()?;
-                let char_offset = *start - line_start_byte;
-
-                let delta_line = line - pre_line;
-                let delta_start = if delta_line == 0 {
-                    char_offset as u32 - pre_start
-                } else {
-                    char_offset as u32
-                };
-
-                let token = SemanticToken {
-                    delta_line,
-                    delta_start,
-                    length: *length as u32,
-                    token_type: *token_type,
-                    token_modifiers_bitset: 0,
-                };
-
-                pre_line = line;
-                pre_start = char_offset as u32;
-
-                Some(token)
-            })
-            .collect::<Vec<_>>();
-
-        Some(semantic_tokens)
     }
 
-    fn build_semantic_tokens_range(&self, uri: &str, range: Range) -> Option<Vec<SemanticToken>> {
-        let semantic_result = self.semanticast_map.get(uri)?;
-        let rope = self.document_map.get(uri)?;
+    incomplete_tokens.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.cmp(&b.1)));
 
-        // Convert range to byte offsets
-        let start_offset = position_to_offset(range.start, &rope)?;
-        let end_offset = position_to_offset(range.end, &rope)?;
+    let mut tokens = Vec::with_capacity(incomplete_tokens.len());
+    let mut pre_line: u32 = 0;
+    let mut pre_start: u32 = 0;
 
-        // Collect all tokens from symbols and references within the range
-        let mut incomplete_tokens: Vec<(usize, usize, u32)> = Vec::new();
-
-        // Add symbol definitions within range
-        for (symbol_id, span) in semantic_result.semantic.symbol_spans.iter_enumerated() {
-            let token_start = span.start as usize;
-            if token_start >= start_offset && token_start < end_offset {
-                let kind = semantic_result.semantic.get_symbol_kind(symbol_id);
-                let token_type = match kind {
-                    SymbolKind::Function => 0,
-                    SymbolKind::Variable => 1,
-                    SymbolKind::Parameter => 2,
-                    SymbolKind::Struct => 3,
-                    SymbolKind::Field => 4,
-                };
-                incomplete_tokens.push((token_start, (span.end - span.start) as usize, token_type));
-            }
-        }
-
-        // Add references within range
-        for (ref_id, span) in semantic_result.semantic.reference_spans.iter_enumerated() {
-            let token_start = span.start as usize;
-            if token_start >= start_offset && token_start < end_offset {
-                if let Some(symbol_id) = semantic_result.semantic.references[ref_id] {
-                    let kind = semantic_result.semantic.get_symbol_kind(symbol_id);
-                    let token_type = match kind {
-                        SymbolKind::Function => 0,
-                        SymbolKind::Variable => 1,
-                        SymbolKind::Parameter => 2,
-                        SymbolKind::Struct => 3,
-                        SymbolKind::Field => 4,
-                    };
-                    incomplete_tokens.push((
-                        token_start,
-                        (span.end - span.start) as usize,
-                        token_type,
-                    ));
-                }
-            }
-        }
-
-        // Sort by start position
-        incomplete_tokens.sort_by(|a, b| a.0.cmp(&b.0));
-
-        // Convert to LSP SemanticToken format with delta encoding
-        let mut pre_line: u32 = 0;
-        let mut pre_start: u32 = 0;
-
-        let semantic_tokens = incomplete_tokens
-            .iter()
-            .filter_map(|(start, length, token_type)| {
-                let line = rope.try_byte_to_line(*start).ok()? as u32;
-                let line_start_byte = rope.try_line_to_byte(line as usize).ok()?;
-                let char_offset = *start - line_start_byte;
-
-                let delta_line = line - pre_line;
-                let delta_start = if delta_line == 0 {
-                    char_offset as u32 - pre_start
-                } else {
-                    char_offset as u32
-                };
-
-                let token = SemanticToken {
-                    delta_line,
-                    delta_start,
-                    length: *length as u32,
-                    token_type: *token_type,
-                    token_modifiers_bitset: 0,
-                };
-
-                pre_line = line;
-                pre_start = char_offset as u32;
-
-                Some(token)
-            })
-            .collect::<Vec<_>>();
-
-        Some(semantic_tokens)
+    for (line, start, length, token_type) in incomplete_tokens {
+        let delta_line = line - pre_line;
+        let delta_start = if delta_line == 0 {
+            start - pre_start
+        } else {
+            start
+        };
+        tokens.push(SemanticToken {
+            delta_line,
+            delta_start,
+            length,
+            token_type,
+            token_modifiers_bitset: 0,
+        });
+        pre_line = line;
+        pre_start = start;
     }
+
+    tokens
+}
+
+fn capture_to_token_type(capture: &str) -> Option<u32> {
+    if capture.starts_with("comment") {
+        return Some(TOKEN_TYPE_COMMENT);
+    }
+    if capture.starts_with("string") || capture.starts_with("character") {
+        return Some(TOKEN_TYPE_STRING);
+    }
+    if capture.starts_with("number") || capture == "boolean" {
+        return Some(TOKEN_TYPE_NUMBER);
+    }
+    if capture.starts_with("keyword") {
+        return Some(TOKEN_TYPE_KEYWORD);
+    }
+    if capture.starts_with("type") || capture.starts_with("tag") {
+        return Some(TOKEN_TYPE_TYPE);
+    }
+    if capture.starts_with("function") {
+        return Some(TOKEN_TYPE_FUNCTION);
+    }
+    if capture.starts_with("variable.parameter") {
+        return Some(TOKEN_TYPE_PARAMETER);
+    }
+    if capture.starts_with("variable.member") || capture.starts_with("property") {
+        return Some(TOKEN_TYPE_PROPERTY);
+    }
+    if capture.starts_with("variable") || capture == "label" {
+        return Some(TOKEN_TYPE_VARIABLE);
+    }
+    if capture.starts_with("constant") {
+        return Some(TOKEN_TYPE_ENUM_MEMBER);
+    }
+    if capture.starts_with("operator") || capture.starts_with("punctuation") {
+        return Some(TOKEN_TYPE_OPERATOR);
+    }
+    if capture.starts_with("module") {
+        return Some(TOKEN_TYPE_NAMESPACE);
+    }
+    if capture.starts_with("attribute") {
+        return Some(TOKEN_TYPE_DECORATOR);
+    }
+    None
 }
 
 struct TextDocumentChange<'a> {

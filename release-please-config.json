@@ -10,6 +10,11 @@
           "path": "Cargo.toml",
           "type": "toml",
           "jsonpath": "$.package.version"
+        },
+        {
+          "path": "Cargo.lock",
+          "type": "toml",
+          "jsonpath": "$.package[?(@.name.value=='idl-language-server')].version"
         }
       ]
     }

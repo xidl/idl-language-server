@@ -5,12 +5,13 @@ use log::{debug, warn};
 use ropey::Rope;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
-use tower_lsp::{LanguageServer, LspService, Server};
+use tower_lsp::{Client, LanguageServer, LspService, Server};
 use tree_sitter::{Node, Parser, Query, QueryCursor, StreamingIterator};
 use tree_sitter_highlight::{HighlightConfiguration, HighlightEvent, Highlighter};
 
 #[derive(Debug)]
 struct Backend {
+    client: Client,
     document_map: DashMap<String, Rope>,
     semantic_tokens_map: DashMap<String, Vec<SemanticToken>>,
 }
@@ -111,6 +112,8 @@ const HIGHLIGHT_NAMES: &[&str] = &[
 ];
 
 const DOCUMENT_SYMBOL_QUERY: &str = include_str!("../queries/document_symbols.scm");
+const DIAGNOSTICS_QUERY: &str = include_str!("../queries/diagnostics.scm");
+const FOLDING_QUERY: &str = include_str!("../queries/folding_ranges.scm");
 
 #[tower_lsp::async_trait]
 impl LanguageServer for Backend {
@@ -138,6 +141,7 @@ impl LanguageServer for Backend {
 
                 workspace: None,
                 document_symbol_provider: Some(OneOf::Left(true)),
+                folding_range_provider: Some(FoldingRangeProviderCapability::Simple(true)),
                 semantic_tokens_provider: Some(
                     SemanticTokensServerCapabilities::SemanticTokensRegistrationOptions(
                         SemanticTokensRegistrationOptions {
@@ -202,7 +206,7 @@ impl LanguageServer for Backend {
 
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
         self.on_change(TextDocumentChange {
-            uri: params.text_document.uri.to_string(),
+            uri: params.text_document.uri,
             text: &params.text_document.text,
         })
         .await;
@@ -212,7 +216,7 @@ impl LanguageServer for Backend {
     async fn did_change(&self, params: DidChangeTextDocumentParams) {
         self.on_change(TextDocumentChange {
             text: &params.content_changes[0].text,
-            uri: params.text_document.uri.to_string(),
+            uri: params.text_document.uri,
         })
         .await;
     }
@@ -250,6 +254,20 @@ impl LanguageServer for Backend {
         Ok(Some(DocumentSymbolResponse::Nested(symbols)))
     }
 
+    async fn folding_range(
+        &self,
+        params: FoldingRangeParams,
+    ) -> Result<Option<Vec<FoldingRange>>> {
+        let uri = params.text_document.uri.to_string();
+        let rope = match self.document_map.get(&uri) {
+            Some(rope) => rope,
+            None => return Ok(None),
+        };
+        let text = rope.to_string();
+        let ranges = build_folding_ranges(&text, &rope);
+        Ok(Some(ranges))
+    }
+
     async fn did_change_configuration(&self, _: DidChangeConfigurationParams) {
         debug!("configuration changed!");
     }
@@ -263,6 +281,7 @@ async fn main() {
     let stdout = tokio::io::stdout();
 
     let (service, socket) = LspService::build(|_client| Backend {
+        client: _client,
         document_map: DashMap::new(),
         semantic_tokens_map: DashMap::new(),
     })
@@ -295,9 +314,14 @@ impl Backend {
     }
 
     async fn on_change(&self, item: TextDocumentChange<'_>) {
+        let uri = item.uri.to_string();
         let rope = Rope::from_str(item.text);
-        self.document_map.insert(item.uri.clone(), rope);
-        self.refresh_semantic_tokens(&item.uri, item.text);
+        self.document_map.insert(uri.clone(), rope);
+        self.refresh_semantic_tokens(&uri, item.text);
+        let diagnostics = build_diagnostics(item.text);
+        self.client
+            .publish_diagnostics(item.uri, diagnostics, None)
+            .await;
     }
 
     fn build_semantic_tokens(&self, uri: &str) -> Option<Vec<SemanticToken>> {
@@ -434,6 +458,111 @@ fn build_document_symbols(text: &str, rope: &Rope) -> Vec<DocumentSymbol> {
     }
 
     build_document_symbol_tree(entries)
+}
+
+fn build_diagnostics(text: &str) -> Vec<Diagnostic> {
+    let mut parser = Parser::new();
+    if parser.set_language(&tree_sitter_idl::language()).is_err() {
+        debug!("failed to set tree-sitter language for diagnostics");
+        return Vec::new();
+    }
+    let tree = match parser.parse(text, None) {
+        Some(tree) => tree,
+        None => {
+            debug!("failed to parse document for diagnostics");
+            return Vec::new();
+        }
+    };
+
+    let query = match Query::new(&tree_sitter_idl::language(), DIAGNOSTICS_QUERY) {
+        Ok(query) => query,
+        Err(err) => {
+            debug!("failed to compile diagnostics query: {err}");
+            return Vec::new();
+        }
+    };
+
+    let mut cursor = QueryCursor::new();
+    let capture_names = query.capture_names();
+    let mut diagnostics = Vec::new();
+    let mut captures = cursor.captures(&query, tree.root_node(), text.as_bytes());
+    while let Some((m, idx)) = captures.next() {
+        let capture = m.captures[*idx];
+        let capture_name = match capture_names.get(capture.index as usize) {
+            Some(name) => *name,
+            None => continue,
+        };
+        if capture_name != "error" {
+            continue;
+        }
+        let range = Range {
+            start: Position::new(capture.node.start_position().row as u32, capture.node.start_position().column as u32),
+            end: Position::new(capture.node.end_position().row as u32, capture.node.end_position().column as u32),
+        };
+        diagnostics.push(Diagnostic {
+            range,
+            severity: Some(DiagnosticSeverity::ERROR),
+            code: None,
+            code_description: None,
+            source: Some("idl-language-server".to_string()),
+            message: "Parse error".to_string(),
+            related_information: None,
+            tags: None,
+            data: None,
+        });
+    }
+    diagnostics
+}
+
+fn build_folding_ranges(text: &str, rope: &Rope) -> Vec<FoldingRange> {
+    let mut parser = Parser::new();
+    if parser.set_language(&tree_sitter_idl::language()).is_err() {
+        debug!("failed to set tree-sitter language for folding ranges");
+        return Vec::new();
+    }
+    let tree = match parser.parse(text, None) {
+        Some(tree) => tree,
+        None => {
+            debug!("failed to parse document for folding ranges");
+            return Vec::new();
+        }
+    };
+
+    let query = match Query::new(&tree_sitter_idl::language(), FOLDING_QUERY) {
+        Ok(query) => query,
+        Err(err) => {
+            debug!("failed to compile folding query: {err}");
+            return Vec::new();
+        }
+    };
+
+    let mut cursor = QueryCursor::new();
+    let capture_names = query.capture_names();
+    let mut ranges = Vec::new();
+    let mut captures = cursor.captures(&query, tree.root_node(), text.as_bytes());
+    while let Some((m, idx)) = captures.next() {
+        let capture = m.captures[*idx];
+        let capture_name = match capture_names.get(capture.index as usize) {
+            Some(name) => *name,
+            None => continue,
+        };
+        if capture_name != "fold" {
+            continue;
+        }
+        let range = node_range(capture.node, rope);
+        if range.start.line >= range.end.line {
+            continue;
+        }
+        ranges.push(FoldingRange {
+            start_line: range.start.line,
+            start_character: Some(range.start.character),
+            end_line: range.end.line,
+            end_character: Some(range.end.character),
+            kind: Some(FoldingRangeKind::Region),
+            collapsed_text: None,
+        });
+    }
+    ranges
 }
 
 fn build_document_symbol_tree(entries: Vec<SymbolEntry>) -> Vec<DocumentSymbol> {
@@ -705,7 +834,7 @@ fn capture_to_token_type(capture: &str) -> Option<u32> {
 }
 
 struct TextDocumentChange<'a> {
-    uri: String,
+    uri: Url,
     text: &'a str,
 }
 
@@ -746,5 +875,26 @@ bitmask Flags {
         assert!(symbols.iter().any(|symbol| symbol.name == "Hello"));
         assert!(symbols.iter().any(|symbol| symbol.name == "Color"));
         assert!(symbols.iter().any(|symbol| symbol.name == "Flags"));
+    }
+
+    #[test]
+    fn diagnostics_collects_error_nodes() {
+        let source = "interface A { void m( }";
+        let diagnostics = build_diagnostics(source);
+        assert!(!diagnostics.is_empty());
+    }
+
+    #[test]
+    fn folding_ranges_include_interface_and_module() {
+        let source = r#"
+module M {
+    interface A {
+        void m();
+    };
+};
+"#;
+        let rope = Rope::from_str(source);
+        let ranges = build_folding_ranges(source, &rope);
+        assert!(!ranges.is_empty());
     }
 }

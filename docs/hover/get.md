@@ -2,8 +2,6 @@
 
 Mark this method as a GET request in xidl-http.
 
-GET "/path/to/api"
-Header
-Body
+GET "/path/to/api" Header Body
 
-*return*: {}
+_return_: {}

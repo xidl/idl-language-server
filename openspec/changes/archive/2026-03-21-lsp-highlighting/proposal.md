@@ -1,6 +1,7 @@
 ## Why
 
-当前 LSP 缺少语法高亮能力，影响编辑体验与诊断可读性。通过引入 tree-sitter 高亮，可与现有诊断高亮实现对齐，并提供稳定的全量高亮输出。
+当前 LSP 缺少语法高亮能力，影响编辑体验与诊断可读性。通过引入 tree-sitter
+高亮，可与现有诊断高亮实现对齐，并提供稳定的全量高亮输出。
 
 ## What Changes
 
@@ -12,9 +13,12 @@
 ## Capabilities
 
 ### New Capabilities
-- `lsp-syntax-highlighting`: 为 IDL 文档提供基于 tree-sitter 的语法高亮输出（全量刷新）。
+
+- `lsp-syntax-highlighting`: 为 IDL 文档提供基于 tree-sitter
+  的语法高亮输出（全量刷新）。
 
 ### Modified Capabilities
+
 - （无）
 
 ## Impact

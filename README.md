@@ -15,13 +15,14 @@ IDL language server and VS Code extension (`vscode-idl-language`).
 
 ## VS Code Extension
 
-The extension bundles a platform-specific `idl-language-server` binary on release.
-If you need to override the server path locally, set `IDL_LANGUAGE_SERVER_PATH`.
+The extension bundles a platform-specific `idl-language-server` binary on
+release. If you need to override the server path locally, set
+`IDL_LANGUAGE_SERVER_PATH`.
 
 ### Tokyo Night Semantic Highlighting
 
-Tokyo Night themes define only a small set of semantic token colors. If you want richer semantic
-highlighting, add the following to your `settings.json`:
+Tokyo Night themes define only a small set of semantic token colors. If you want
+richer semantic highlighting, add the following to your `settings.json`:
 
 ```json
 {

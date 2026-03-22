@@ -2,7 +2,7 @@
 node_modules
 out/
 .pnpm-debug.log
-*.ast 
+*.ast
 dist/
 *.vsix
 

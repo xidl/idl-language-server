@@ -1,101 +1,101 @@
 {
-  "name": "vscode-idl-language",
-  "version": "0.8.0",
-  "description": "IDL language server (VS Code extension)",
-  "displayName": "IDL Language",
-  "publisher": "cathaysia",
-  "categories": [
-    "Programming Languages",
-    "Linters"
-  ],
-  "packageManager": "pnpm@8.15.7",
-  "keywords": [
-    "idl",
-    "language-server",
-    "lsp"
-  ],
-  "license": "Apache-2.0",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/xidl/idl-language-server.git"
-  },
-  "homepage": "https://github.com/xidl/idl-language-server",
-  "bugs": {
-    "url": "https://github.com/xidl/idl-language-server/issues"
-  },
-  "main": "./dist/extension.js",
-  "files": [
-    "dist/**",
-    "server/**",
-    "package.json",
-    "README.md",
-    "LICENSE"
-  ],
-  "scripts": {
-    "postinstall": "cd client && pnpm i",
-    "compile": "pnpm run check-types && node esbuild.js --production",
-    "check-types": "tsc --noEmit",
-    "watch": "node scripts/watch.mjs",
-    "watch:esbuild": "node esbuild.js --watch",
-    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
-    "package": "vsce package --no-dependencies",
-    "lint": "oxlint -c oxlint.json .",
-    "fmt": "oxfmt --write .",
-    "fmt:check": "oxfmt --check ."
-  },
-  "devDependencies": {
-    "@types/glob": "8.1.0",
-    "@types/mocha": "10.0.10",
-    "@types/node": "22.10.2",
-    "@vscode/vsce": "^3.7.1",
-    "cross-env": "^7.0.3",
-    "esbuild": "^0.24.2",
-    "glob": "11.0.0",
-    "mocha": "11.0.2",
-    "oxfmt": "^0.24.0",
-    "oxlint": "^1.56.0",
-    "ts-loader": "^9.5.4",
-    "typescript": "5.4.5",
-    "vscode-test": "^1.6.1",
-    "vscode-uri": "^3.1.0"
-  },
-  "contributes": {
-    "languages": [
-      {
-        "id": "idl",
-        "extensions": [
-          ".idl"
-        ]
-      }
-    ],
-    "configuration": {
-      "type": "object",
-      "title": "idl-language-server",
-      "properties": {
-        "idl-language-server.trace.server": {
-          "type": "string",
-          "scope": "window",
-          "enum": [
-            "off",
-            "messages",
-            "verbose"
-          ],
-          "enumDescriptions": [
-            "No traces",
-            "Error only",
-            "Full log"
-          ],
-          "default": "off",
-          "description": "Traces the communication between VS Code and the language server."
-        }
-      }
-    }
-  },
-  "activationEvents": [
-    "onLanguage:idl"
-  ],
-  "engines": {
-    "vscode": "^1.66.0"
-  },
-  "enabledApiProposals": []
+	"name": "vscode-idl-language",
+	"version": "0.8.0",
+	"description": "IDL language server (VS Code extension)",
+	"displayName": "IDL Language",
+	"publisher": "cathaysia",
+	"categories": [
+		"Programming Languages",
+		"Linters"
+	],
+	"packageManager": "pnpm@8.15.7",
+	"keywords": [
+		"idl",
+		"language-server",
+		"lsp"
+	],
+	"license": "Apache-2.0",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/xidl/idl-language-server.git"
+	},
+	"homepage": "https://github.com/xidl/idl-language-server",
+	"bugs": {
+		"url": "https://github.com/xidl/idl-language-server/issues"
+	},
+	"main": "./dist/extension.js",
+	"files": [
+		"dist/**",
+		"server/**",
+		"package.json",
+		"README.md",
+		"LICENSE"
+	],
+	"scripts": {
+		"postinstall": "cd client && pnpm i",
+		"compile": "pnpm run check-types && node esbuild.js --production",
+		"check-types": "tsc --noEmit",
+		"watch": "node scripts/watch.mjs",
+		"watch:esbuild": "node esbuild.js --watch",
+		"watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+		"package": "vsce package --no-dependencies",
+		"lint": "oxlint -c oxlint.json .",
+		"fmt": "oxfmt --write .",
+		"fmt:check": "oxfmt --check ."
+	},
+	"devDependencies": {
+		"@types/glob": "8.1.0",
+		"@types/mocha": "10.0.10",
+		"@types/node": "22.10.2",
+		"@vscode/vsce": "^3.7.1",
+		"cross-env": "^7.0.3",
+		"esbuild": "^0.24.2",
+		"glob": "11.0.0",
+		"mocha": "11.0.2",
+		"oxfmt": "^0.24.0",
+		"oxlint": "^1.56.0",
+		"ts-loader": "^9.5.4",
+		"typescript": "5.4.5",
+		"vscode-test": "^1.6.1",
+		"vscode-uri": "^3.1.0"
+	},
+	"contributes": {
+		"languages": [
+			{
+				"id": "idl",
+				"extensions": [
+					".idl"
+				]
+			}
+		],
+		"configuration": {
+			"type": "object",
+			"title": "idl-language-server",
+			"properties": {
+				"idl-language-server.trace.server": {
+					"type": "string",
+					"scope": "window",
+					"enum": [
+						"off",
+						"messages",
+						"verbose"
+					],
+					"enumDescriptions": [
+						"No traces",
+						"Error only",
+						"Full log"
+					],
+					"default": "off",
+					"description": "Traces the communication between VS Code and the language server."
+				}
+			}
+		}
+	},
+	"activationEvents": [
+		"onLanguage:idl"
+	],
+	"engines": {
+		"vscode": "^1.66.0"
+	},
+	"enabledApiProposals": []
 }

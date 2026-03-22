@@ -16,12 +16,10 @@ use tree_sitter::{Parser, Query, QueryCursor, StreamingIterator};
 use utoipa_scalar::Scalar;
 
 use crate::doc::http as http_annotations;
-use crate::{node_range, position_in_range};
+use crate::analysis::{node_range, position_in_range};
 use ropey::Rope;
 
 const HTTP_ANNOTATION_QUERY: &str = "(annotation) @annotation";
-const INTERFACE_QUERY: &str =
-    "(interface_def (interface_header (identifier) @interface.name)) @interface";
 const INTERFACE_NAME_QUERY: &str =
     "(interface_def (interface_header (identifier) @interface.name)) @interface";
 const SCALAR_HTML: &str = include_str!(concat!(env!("OUT_DIR"), "/scalar.standalone.html"));
@@ -57,51 +55,6 @@ struct PreviewState {
 pub fn document_is_http_relevant(text: &str) -> bool {
     let lower = text.to_ascii_lowercase();
     contains_http_annotations(text) || lower.contains("pragma xidlc service")
-}
-
-pub fn interface_at_position(text: &str, rope: &Rope, position: Position) -> bool {
-    let mut parser = Parser::new();
-    if parser.set_language(&tree_sitter_idl::language()).is_err() {
-        return false;
-    }
-    let tree = match parser.parse(text, None) {
-        Some(tree) => tree,
-        None => return false,
-    };
-    let query = match Query::new(&tree_sitter_idl::language(), INTERFACE_QUERY) {
-        Ok(query) => query,
-        Err(_) => return false,
-    };
-
-    let capture_names = query.capture_names();
-    let mut cursor = QueryCursor::new();
-    let mut matches = cursor.matches(&query, tree.root_node(), text.as_bytes());
-
-    while let Some(m) = matches.next() {
-        for capture in m.captures {
-            let capture_name = match capture_names.get(capture.index as usize) {
-                Some(name) => *name,
-                None => continue,
-            };
-            if capture_name != "interface" {
-                continue;
-            }
-            let range = node_range(capture.node, rope);
-            if position_in_range(position, range) {
-                return true;
-            }
-        }
-    }
-    let line_idx = position.line as usize;
-    if line_idx < rope.len_lines() {
-        if let Some(line) = rope.get_line(line_idx) {
-            let line_text = line.to_string();
-            if line_text.contains("interface") {
-                return true;
-            }
-        }
-    }
-    false
 }
 
 pub fn interface_name_at_position(text: &str, rope: &Rope, position: Position) -> bool {
@@ -195,36 +148,6 @@ pub fn interface_name_positions(text: &str, rope: &Rope) -> Vec<Position> {
     positions
 }
 
-pub fn document_has_interface(text: &str) -> bool {
-    let mut parser = Parser::new();
-    if parser.set_language(&tree_sitter_idl::language()).is_err() {
-        return false;
-    }
-    let tree = match parser.parse(text, None) {
-        Some(tree) => tree,
-        None => return false,
-    };
-    let query = match Query::new(&tree_sitter_idl::language(), INTERFACE_QUERY) {
-        Ok(query) => query,
-        Err(_) => return false,
-    };
-    let capture_names = query.capture_names();
-    let mut cursor = QueryCursor::new();
-    let mut matches = cursor.matches(&query, tree.root_node(), text.as_bytes());
-    while let Some(m) = matches.next() {
-        for capture in m.captures {
-            let capture_name = match capture_names.get(capture.index as usize) {
-                Some(name) => *name,
-                None => continue,
-            };
-            if capture_name == "interface" {
-                return true;
-            }
-        }
-    }
-    false
-}
-
 pub async fn start_preview(text: &str) -> anyhow::Result<PreviewHandle> {
     let working_dir = create_working_dir()?;
     let source_path = working_dir.join("source.idl");
@@ -237,7 +160,7 @@ pub async fn start_preview(text: &str) -> anyhow::Result<PreviewHandle> {
     let state = Arc::new(PreviewState { openapi_path });
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await?;
     let addr = listener.local_addr()?;
-    let scalar_url = format!("http://{}/scalar", addr);
+    let scalar_url = format!("http://{addr}/scalar");
 
     let app = build_router(state.clone());
 

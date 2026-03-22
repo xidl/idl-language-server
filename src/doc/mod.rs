@@ -11,7 +11,9 @@ use tower_lsp::lsp_types::{
 use tree_sitter::{Parser, Query, QueryCursor, StreamingIterator};
 use xidl_parser::parser::parser_text;
 
-use super::{GotoSymbol, GotoSymbolKind, build_goto_symbols, node_range, position_in_range};
+use crate::analysis::{
+    build_goto_symbols, node_range, position_in_range, GotoSymbol, GotoSymbolKind,
+};
 
 pub(crate) mod http;
 
@@ -22,10 +24,7 @@ const HOVER_QUERY: &str = include_str!("../../queries/hover_docs.scm");
 struct HoverDocs;
 
 pub(super) fn build_hover(text: &str, rope: &Rope, uri: &Url, position: Position) -> Option<Hover> {
-    let (doc_name, template_path) = match hover_template_at_position(text, rope, position) {
-        Some(hit) => hit,
-        None => return None,
-    };
+    let (doc_name, template_path) = hover_template_at_position(text, rope, position)?;
 
     let template = match load_hover_template(&template_path) {
         Some(template) => template,
@@ -43,7 +42,7 @@ pub(super) fn build_hover(text: &str, rope: &Rope, uri: &Url, position: Position
     let hir_value = match parser_text(text) {
         Ok(spec) => {
             let hir = xidl_parser::hir::Specification::from(spec);
-            serde_json::to_value(hir).unwrap_or_else(|_| json!(null))
+            serde_json::to_value(hir).unwrap_or(serde_json::Value::Null)
         }
         Err(_) => json!(null),
     };

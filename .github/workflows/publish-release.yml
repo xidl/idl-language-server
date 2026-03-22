@@ -97,7 +97,7 @@ jobs:
             --out "dist/vscode-idl-language-${{ matrix.platform.vsce_target }}.vsix"
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: idl-language-server-${{ matrix.platform.target }}
           path: |

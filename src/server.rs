@@ -2,17 +2,17 @@ use std::sync::Arc;
 
 use log::debug;
 use tower_lsp::jsonrpc::Result;
-use tower_lsp::lsp_types::*;
 use tower_lsp::lsp_types::request::{GotoDeclarationParams, GotoDeclarationResponse};
+use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService, Server};
 
 use crate::analysis::{
     build_document_symbols, build_folding_ranges, build_goto_symbols, goto_declaration_locations,
     goto_definition_locations, reference_locations, rename_workspace_edit,
 };
-use crate::constants::{semantic_token_types, LANGUAGE_ID};
+use crate::constants::{LANGUAGE_ID, semantic_token_types};
 use crate::context::AppContext;
-use crate::documents::{format_text, on_change, semantic_tokens, TextDocumentChange};
+use crate::documents::{TextDocumentChange, format_text, on_change, semantic_tokens};
 use crate::handlers::{code_action, code_lens, execute_command, hover};
 use crate::http_client;
 

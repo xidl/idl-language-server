@@ -5,8 +5,8 @@ use tree_sitter::{Node, Parser, Query, QueryCursor, StreamingIterator};
 use tree_sitter_highlight::{HighlightConfiguration, HighlightEvent, Highlighter};
 
 use crate::constants::{
-    capture_to_token_type, DOCUMENT_SYMBOL_QUERY, DIAGNOSTIC_SOURCE, DIAGNOSTICS_QUERY,
-    FOLDING_QUERY, GOTO_QUERY, HIGHLIGHT_NAMES,
+    DIAGNOSTIC_SOURCE, DIAGNOSTICS_QUERY, DOCUMENT_SYMBOL_QUERY, FOLDING_QUERY, GOTO_QUERY,
+    HIGHLIGHT_NAMES, capture_to_token_type,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
@@ -516,7 +516,7 @@ fn build_document_symbol_tree(entries: Vec<SymbolEntry>) -> Vec<DocumentSymbol> 
             children: None,
         };
 
-    if entry.is_op {
+        if entry.is_op {
             if let Some(key) = entry.interface_key {
                 if let Some(&idx) = interface_index.get(&key) {
                     if let Some(children) = interfaces[idx].2.children.as_mut() {
@@ -674,7 +674,11 @@ pub(crate) fn build_highlight_tokens(text: &str, rope: &Rope) -> Vec<SemanticTok
 
     for (line, start, length, token_type) in incomplete_tokens {
         let delta_line = line - pre_line;
-        let delta_start = if delta_line == 0 { start - pre_start } else { start };
+        let delta_start = if delta_line == 0 {
+            start - pre_start
+        } else {
+            start
+        };
         tokens.push(SemanticToken {
             delta_line,
             delta_start,

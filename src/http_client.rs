@@ -15,8 +15,8 @@ use tower_lsp::lsp_types::Position;
 use tree_sitter::{Parser, Query, QueryCursor, StreamingIterator};
 use utoipa_scalar::Scalar;
 
-use crate::doc::http as http_annotations;
 use crate::analysis::{node_range, position_in_range};
+use crate::doc::http as http_annotations;
 use ropey::Rope;
 
 const HTTP_ANNOTATION_QUERY: &str = "(annotation) @annotation";

@@ -12,7 +12,7 @@ use tree_sitter::{Parser, Query, QueryCursor, StreamingIterator};
 use xidl_parser::parser::parser_text;
 
 use crate::analysis::{
-    build_goto_symbols, node_range, position_in_range, GotoSymbol, GotoSymbolKind,
+    GotoSymbol, GotoSymbolKind, build_goto_symbols, node_range, position_in_range,
 };
 
 pub(crate) mod http;

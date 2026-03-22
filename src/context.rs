@@ -1,7 +1,7 @@
 use dashmap::DashMap;
 use ropey::Rope;
-use tower_lsp::lsp_types::SemanticToken;
 use tower_lsp::Client;
+use tower_lsp::lsp_types::SemanticToken;
 
 use crate::http_client::PreviewHandle;
 

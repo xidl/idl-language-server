@@ -1,9 +1,9 @@
 mod analysis;
 mod constants;
 mod context;
+mod doc;
 mod documents;
 mod handlers;
-mod doc;
 mod http_client;
 mod server;
 

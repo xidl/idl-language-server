@@ -394,7 +394,7 @@ impl LanguageServer for Backend {
         let position = params.range.start;
 
         let relevant = http_client::document_is_http_relevant(&text);
-        let on_interface = http_client::interface_at_position(&text, &rope, position);
+        let on_interface = http_client::interface_name_at_position(&text, &rope, position);
         debug!(
             "code_action: uri={} relevant={} on_interface={}",
             uri, relevant, on_interface
@@ -642,7 +642,7 @@ impl Backend {
         position: Position,
     ) -> Option<String> {
         let preview = self.preview_map.get(uri.as_str())?;
-        if !http_client::interface_at_position(text, rope, position) {
+        if !http_client::interface_name_at_position(text, rope, position) {
             return None;
         }
         Some(format!("[Open Scalar UI]({})", preview.scalar_url))

@@ -104,6 +104,53 @@ pub fn interface_at_position(text: &str, rope: &Rope, position: Position) -> boo
     false
 }
 
+pub fn interface_name_at_position(text: &str, rope: &Rope, position: Position) -> bool {
+    let mut parser = Parser::new();
+    if parser.set_language(&tree_sitter_idl::language()).is_err() {
+        return false;
+    }
+    let tree = match parser.parse(text, None) {
+        Some(tree) => tree,
+        None => return false,
+    };
+    let query = match Query::new(&tree_sitter_idl::language(), INTERFACE_NAME_QUERY) {
+        Ok(query) => query,
+        Err(_) => return false,
+    };
+
+    let capture_names = query.capture_names();
+    let mut cursor = QueryCursor::new();
+    let mut matches = cursor.matches(&query, tree.root_node(), text.as_bytes());
+
+    while let Some(m) = matches.next() {
+        for capture in m.captures {
+            let capture_name = match capture_names.get(capture.index as usize) {
+                Some(name) => *name,
+                None => continue,
+            };
+            if capture_name != "interface.name" {
+                continue;
+            }
+            let range = node_range(capture.node, rope);
+            if position_in_range(position, range) {
+                return true;
+            }
+        }
+    }
+
+    let line_idx = position.line as usize;
+    if line_idx < rope.len_lines() {
+        if let Some(line) = rope.get_line(line_idx) {
+            let line_text = line.to_string();
+            if line_text.contains("interface") {
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
 pub fn interface_name_positions(text: &str, rope: &Rope) -> Vec<Position> {
     let mut parser = Parser::new();
     if parser.set_language(&tree_sitter_idl::language()).is_err() {
@@ -133,6 +180,14 @@ pub fn interface_name_positions(text: &str, rope: &Rope) -> Vec<Position> {
                 continue;
             }
             let range = node_range(capture.node, rope);
+            let line_idx = range.start.line as usize;
+            if line_idx < rope.len_lines() {
+                if let Some(line) = rope.get_line(line_idx) {
+                    if !line.to_string().contains("interface") {
+                        continue;
+                    }
+                }
+            }
             positions.push(range.end);
         }
     }

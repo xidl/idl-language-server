@@ -25,6 +25,24 @@
                 <a href="https://github.com/REPOSITORY/releases/download/RELEASE_TAG/idl-language-server-aarch64-apple-darwin.tar.gz"><img src="https://img.shields.io/badge/aarch64--apple--darwin-Apple Silicon-000000.svg?logo=apple"></a>
             </td>
         </tr>
+        <tr>
+            <td>VSCode (macOS arm64)</td>
+            <td>
+                <a href="https://github.com/REPOSITORY/releases/download/RELEASE_TAG/vscode-idl-language-darwin-arm64.vsix"><img src="https://img.shields.io/badge/VSCode-macOS%20arm64-007ACC.svg?logo=visualstudiocode"></a>
+            </td>
+        </tr>
+        <tr>
+            <td>VSCode (Linux x64)</td>
+            <td>
+                <a href="https://github.com/REPOSITORY/releases/download/RELEASE_TAG/vscode-idl-language-linux-x64.vsix"><img src="https://img.shields.io/badge/VSCode-Linux%20x64-007ACC.svg?logo=visualstudiocode"></a>
+            </td>
+        </tr>
+        <tr>
+            <td>VSCode (Windows x64)</td>
+            <td>
+                <a href="https://github.com/REPOSITORY/releases/download/RELEASE_TAG/vscode-idl-language-win32-x64.vsix"><img src="https://img.shields.io/badge/VSCode-Windows%20x64-007ACC.svg?logo=visualstudiocode"></a>
+            </td>
+        </tr>
     </tbody>
 </table>
 </div>

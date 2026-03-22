@@ -409,12 +409,12 @@ impl LanguageServer for Backend {
         let is_running = self.preview_map.contains_key(uri.as_str());
         let (title, command) = if is_running {
             (
-                "$(debug-stop) Stop HTTP Client",
+                "$(debug-stop) Stop HTTP API Preview",
                 http_client::CMD_STOP_HTTP_CLIENT,
             )
         } else {
             (
-                "$(play) Start HTTP Client",
+                "$(play) Start HTTP API Preview",
                 http_client::CMD_START_HTTP_CLIENT,
             )
         };
@@ -467,6 +467,7 @@ impl LanguageServer for Backend {
                 match http_client::start_preview(&text).await {
                     Ok(preview) => {
                         self.preview_map.insert(uri, preview);
+                        self.refresh_code_lens().await;
                     }
                     Err(err) => {
                         self.client
@@ -484,6 +485,7 @@ impl LanguageServer for Backend {
                     self.client
                         .show_message(MessageType::INFO, "HTTP client preview stopped")
                         .await;
+                    self.refresh_code_lens().await;
                 }
             }
             _ => {}
@@ -513,8 +515,8 @@ impl LanguageServer for Backend {
 
         if is_running {
             if let Some(preview) = self.preview_map.get(uri.as_str()) {
-                let open_title = "$(link-external) open scalar web";
-                let stop_title = "$(debug-stop) stop http client";
+                let open_title = "$(link-external) Open HTTP API Preview";
+                let stop_title = "$(debug-stop) Stop HTTP Preview";
                 for position in positions {
                     lenses.push(CodeLens {
                         range: Range {
@@ -545,7 +547,7 @@ impl LanguageServer for Backend {
                 }
             }
         } else {
-            let title = "$(play) Start HTTP Client";
+            let title = "$(play) Start HTTP API Preview";
             let command = http_client::CMD_START_HTTP_CLIENT;
             for position in positions {
                 lenses.push(CodeLens {
@@ -590,6 +592,12 @@ async fn main() {
 }
 
 impl Backend {
+    async fn refresh_code_lens(&self) {
+        if let Err(err) = self.client.code_lens_refresh().await {
+            warn!("failed to refresh code lens: {}", err);
+        }
+    }
+
     fn format_text(&self, params: DocumentFormattingParams) -> Option<Vec<TextEdit>> {
         let uri = params.text_document.uri.to_string();
         let rope = self.document_map.get(&uri)?;

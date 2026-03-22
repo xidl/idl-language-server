@@ -409,12 +409,12 @@ impl LanguageServer for Backend {
         let is_running = self.preview_map.contains_key(uri.as_str());
         let (title, command) = if is_running {
             (
-                "$(debug-stop) stop http client",
+                "$(debug-stop) Stop HTTP Client",
                 http_client::CMD_STOP_HTTP_CLIENT,
             )
         } else {
             (
-                "$(play) start http client",
+                "$(play) Start HTTP Client",
                 http_client::CMD_START_HTTP_CLIENT,
             )
         };
@@ -466,11 +466,7 @@ impl LanguageServer for Backend {
                 let text = rope.to_string();
                 match http_client::start_preview(&text).await {
                     Ok(preview) => {
-                        let url = preview.scalar_url.clone();
                         self.preview_map.insert(uri, preview);
-                        self.client
-                            .show_message(MessageType::INFO, format!("HTTP client preview: {url}"))
-                            .await;
                     }
                     Err(err) => {
                         self.client
@@ -549,7 +545,7 @@ impl LanguageServer for Backend {
                 }
             }
         } else {
-            let title = "$(play) start http client";
+            let title = "$(play) Start HTTP Client";
             let command = http_client::CMD_START_HTTP_CLIENT;
             for position in positions {
                 lenses.push(CodeLens {

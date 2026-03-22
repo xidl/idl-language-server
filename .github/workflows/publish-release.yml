@@ -65,7 +65,7 @@ jobs:
           tar -czf dist/idl-language-server-${{ matrix.platform.target }}.tar.gz -C target/${{ matrix.platform.target }}/release ${BIN_NAME}
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node
         uses: actions/setup-node@v4

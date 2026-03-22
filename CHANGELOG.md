@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.0](https://github.com/xidl/idl-language-server/compare/v0.8.0...v0.9.0) (2026-03-22)
+
+
+### Features
+
+* only show hover and code actin, code lens on interface ([2ab54a7](https://github.com/xidl/idl-language-server/commit/2ab54a7cc06f262a7ee9cc5305ac54ff9e537b24))
+* refresn code action ([50b9058](https://github.com/xidl/idl-language-server/commit/50b90585b37371fe425eb0557f7aa87faa71a64f))
+
 ## [0.8.0](https://github.com/xidl/idl-language-server/compare/v0.7.0...v0.8.0) (2026-03-21)
 
 

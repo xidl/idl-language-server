@@ -1,3 +1,5 @@
+packages:
+  - client
 onlyBuiltDependencies:
   - '@vscode/vsce-sign'
   - esbuild

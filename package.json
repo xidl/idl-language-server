@@ -32,30 +32,24 @@
 		"LICENSE"
 	],
 	"scripts": {
-		"postinstall": "cd client && pnpm i",
 		"compile": "pnpm run check-types && node esbuild.js --production",
 		"check-types": "tsc --noEmit",
 		"watch": "node scripts/watch.mjs",
 		"watch:esbuild": "node esbuild.js --watch",
 		"watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
-		"package": "vsce package --no-dependencies",
-		"lint": "oxlint -c oxlint.json .",
-		"fmt": "oxfmt --write .",
-		"fmt:check": "oxfmt --check ."
+		"package": "vsce package --no-dependencies"
 	},
 	"devDependencies": {
 		"@types/glob": "8.1.0",
 		"@types/mocha": "10.0.10",
-		"@types/node": "22.10.2",
+		"@types/node": "25.5.0",
 		"@vscode/vsce": "^3.7.1",
-		"cross-env": "^7.0.3",
-		"esbuild": "^0.24.2",
-		"glob": "11.0.0",
-		"mocha": "11.0.2",
-		"oxfmt": "^0.24.0",
-		"oxlint": "^1.56.0",
+		"cross-env": "^10.1.0",
+		"esbuild": "^0.27.4",
+		"glob": "13.0.6",
+		"mocha": "11.7.5",
 		"ts-loader": "^9.5.4",
-		"typescript": "5.4.5",
+		"typescript": "5.9.3",
 		"vscode-test": "^1.6.1",
 		"vscode-uri": "^3.1.0"
 	},

@@ -10,7 +10,7 @@ use crate::analysis::{
     build_document_symbols, build_folding_ranges, build_goto_symbols, goto_declaration_locations,
     goto_definition_locations, reference_locations, rename_workspace_edit,
 };
-use crate::constants::{LANGUAGE_ID, semantic_token_types};
+use crate::constants::{LANGUAGE_ID, semantic_token_modifiers, semantic_token_types};
 use crate::context::AppContext;
 use crate::documents::{TextDocumentChange, format_text, on_change, semantic_tokens};
 use crate::handlers::{code_action, code_lens, execute_command, hover};
@@ -93,7 +93,7 @@ impl LanguageServer for Backend {
                                 work_done_progress_options: WorkDoneProgressOptions::default(),
                                 legend: SemanticTokensLegend {
                                     token_types: semantic_token_types(),
-                                    token_modifiers: vec![],
+                                    token_modifiers: semantic_token_modifiers(),
                                 },
                                 range: Some(false),
                                 full: Some(SemanticTokensFullOptions::Bool(true)),

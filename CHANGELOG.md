@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.10.0](https://github.com/xidl/idl-language-server/compare/v0.9.0...v0.10.0) (2026-03-23)
+
+
+### Features
+
+* bump deps ([9efc9e3](https://github.com/xidl/idl-language-server/commit/9efc9e3deac900600e349611d8245f46ea976c2e))
+* bump nodejs deps ([89beaaf](https://github.com/xidl/idl-language-server/commit/89beaaf4b971b075ae7d36c3c5a63641d1322e98))
+
 ## [0.9.0](https://github.com/xidl/idl-language-server/compare/v0.8.0...v0.9.0) (2026-03-22)
 
 

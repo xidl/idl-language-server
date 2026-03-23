@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.11.0](https://github.com/xidl/idl-language-server/compare/v0.10.0...v0.11.0) (2026-03-23)
+
+
+### Features
+
+* **lsp:** align semantic token legend ([f91c00b](https://github.com/xidl/idl-language-server/commit/f91c00ba17e88c5121c6b64825a5cf3efbb4aac1))
+* **scalar:** bump to 1.49.3 ([baa10fa](https://github.com/xidl/idl-language-server/commit/baa10fab1f4daf6cb42ca714eb556b7c2875b1ae))
+
 ## [0.10.0](https://github.com/xidl/idl-language-server/compare/v0.9.0...v0.10.0) (2026-03-23)
 
 

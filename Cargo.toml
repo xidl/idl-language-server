@@ -14,18 +14,15 @@ tower-lsp = { version = "0.20.0", features = ["proposed"] }
 serde = { version = "1.0", features = ["derive"] }
 dashmap = "6.1.0"
 log = "0.4.14"
-im-rc = "15.0.0"
-oxc_index = "0.36.0"
 anyhow = "1.0.93"
 thiserror = "2.0.3"
-rust-lapper = "1.1.0"
 tree-sitter = "0.25.0"
 tree-sitter-highlight = "0.25.0"
 tree-sitter-idl = "3.17.0"
-xidlc = "0.29.0"
+xidlc = { version = "0.30.0", default-features = false }
 rust-embed = "8.4.0"
 minijinja = "2.1.0"
-xidl-parser = "0.29.0"
+xidl-parser = "0.30.0"
 axum = "0.8.3"
 utoipa = "5.4.0"
 utoipa-scalar = { version = "0.3", features = ["axum"] }

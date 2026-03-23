@@ -221,15 +221,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b048fb63fd8b5923fc5aa7b340d8e156aec7ec02f0c78fa8a6ddc2613f6f71de"
 
 [[package]]
-name = "bitmaps"
-version = "2.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "031043d04099746d8db04daf1fa424b2bc8bd69d92b25962dcde24da39ab64a2"
-dependencies = [
- "typenum",
-]
-
-[[package]]
 name = "block-buffer"
 version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -753,13 +744,10 @@ dependencies = [
  "axum",
  "dashmap 6.1.0",
  "env_logger",
- "im-rc",
  "log",
  "minijinja 2.18.0",
- "oxc_index",
  "ropey",
  "rust-embed",
- "rust-lapper",
  "serde",
  "serde_json",
  "thiserror",
@@ -782,20 +770,6 @@ checksum = "e14ddfc70884202db2244c223200c204c2bda1bc6e0998d11b5e024d657209e6"
 dependencies = [
  "unicode-bidi",
  "unicode-normalization",
-]
-
-[[package]]
-name = "im-rc"
-version = "15.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af1955a75fa080c677d3972822ec4bad316169ab1cfc6c257a942c2265dbe5fe"
-dependencies = [
- "bitmaps",
- "rand_core",
- "rand_xoshiro",
- "sized-chunks",
- "typenum",
- "version_check",
 ]
 
 [[package]]
@@ -1038,15 +1012,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "num-traits"
-version = "0.2.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "071dfc062690e90b734c0b2273ce72ad0ffa95f0c74596bc250dcfd960262841"
-dependencies = [
- "autocfg",
-]
-
-[[package]]
 name = "object"
 version = "0.37.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1072,12 +1037,6 @@ name = "owo-colors"
 version = "4.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d211803b9b6b570f68772237e415a029d5a50c65d382910b879fb19d3271f94d"
-
-[[package]]
-name = "oxc_index"
-version = "0.36.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae76739229d0cc5e834e0e3b9e8c4078a86828ff47f5bc71138e4571ce528f83"
 
 [[package]]
 name = "parking_lot"
@@ -1210,21 +1169,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "69cdb34c158ceb288df11e18b4bd39de994f6657d83847bdffdbd7f346754b0f"
 
 [[package]]
-name = "rand_core"
-version = "0.6.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
-
-[[package]]
-name = "rand_xoshiro"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6f97cdb2a36ed4183de61b2f824cc45c9f1037f28afe0a322e9fff4c108b5aaa"
-dependencies = [
- "rand_core",
-]
-
-[[package]]
 name = "redox_syscall"
 version = "0.5.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1319,15 +1263,6 @@ checksum = "5bcdef0be6fe7f6fa333b1073c949729274b05f123a0ad7efcb8efd878e5c3b1"
 dependencies = [
  "sha2",
  "walkdir",
-]
-
-[[package]]
-name = "rust-lapper"
-version = "1.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2274b9cc4f205bc0945b7be3e4fc1a102b0b7119ba6482faaedb9c4f76dde5d1"
-dependencies = [
- "num-traits",
 ]
 
 [[package]]
@@ -1496,16 +1431,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d8229b473baa5980ac72ef434c4415e70c4b5e71b423043adb4ba059f89c99a1"
 dependencies = [
  "libc",
-]
-
-[[package]]
-name = "sized-chunks"
-version = "0.6.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "16d69225bde7a69b235da73377861095455d298f2b970996eec25ddbb42b3d1e"
-dependencies = [
- "bitmaps",
- "typenum",
 ]
 
 [[package]]
@@ -2322,9 +2247,9 @@ checksum = "d7249219f66ced02969388cf2bb044a09756a083d0fab1e566056b04d9fbcaa5"
 
 [[package]]
 name = "xidl-jsonrpc"
-version = "0.29.0"
+version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7672afc3f3f0bf2c19268e54bcc648a6adbc7de96265b7ff7261ad4427a53de"
+checksum = "797f10f4c972ac735dbfab66edc532bc0c6625022ef278f5247b72cff34e7344"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -2339,9 +2264,9 @@ dependencies = [
 
 [[package]]
 name = "xidl-parser"
-version = "0.29.0"
+version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5fe33d13f05aba523de747eb97114ba6931bf1371bba89591d6296f7ffd66715"
+checksum = "2fa0856d15e626584c4dfc5899efeb2a8afff63f34b90030d8f09155d2e8966e"
 dependencies = [
  "md5 0.7.0",
  "minijinja 1.0.22",
@@ -2356,9 +2281,9 @@ dependencies = [
 
 [[package]]
 name = "xidl-parser-derive"
-version = "0.29.0"
+version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a5300304f2fdb8a7302b71e2fb670b5a1bb14ecd0fe17ab8b8af2257d3250de"
+checksum = "a60b1b6e11debf853258d880fbdca7179b0ff76c0e80f37570e981d67bf14b49"
 dependencies = [
  "convert_case 0.8.0",
  "darling",
@@ -2370,9 +2295,9 @@ dependencies = [
 
 [[package]]
 name = "xidl-xcdr"
-version = "0.29.0"
+version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "80f7d3f77e6caf2b7fe27198e4dbdea20672cf15e99d6b58ecc4ec458add949d"
+checksum = "ad58a6522e361d777c1667a596b01bc3df17058e48e42f97fc35aa3655a799bc"
 dependencies = [
  "bytes",
  "cbindgen",
@@ -2382,9 +2307,9 @@ dependencies = [
 
 [[package]]
 name = "xidlc"
-version = "0.29.0"
+version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "68603e43ffe965f6e56fcdbcd1858f89fbabdc69c73f7511c4e13c0778392cb6"
+checksum = "55a4d2b2474ca4963d3d3e189de40eabd8f1a89ac693d6d631e0427b35439168"
 dependencies = [
  "async-trait",
  "clap",

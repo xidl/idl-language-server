@@ -90,7 +90,11 @@ pub const SEMANTIC_TOKEN_MODIFIERS: &[&str] = &[
 
 pub const HIGHLIGHT_NAMES: &[&str] = &[
     "comment.documentation",
+    "comment.block",
+    "comment.block.documentation",
     "comment.error",
+    "comment.line",
+    "comment.line.documentation",
     "comment.warning",
     "comment.todo",
     "comment.note",
@@ -205,6 +209,10 @@ fn token_type_index(token_type: &str) -> Option<u32> {
 pub fn capture_to_token_type(capture: &str) -> Option<u32> {
     match capture {
         "comment.documentation"
+        | "comment.block"
+        | "comment.block.documentation"
+        | "comment.line"
+        | "comment.line.documentation"
         | "comment.error"
         | "comment.warning"
         | "comment.todo"
@@ -233,8 +241,8 @@ pub fn capture_to_token_type(capture: &str) -> Option<u32> {
         | "keyword.repeat"
         | "keyword.return"
         | "keyword.debug"
-        | "keyword.type"
         | "keyword" => token_type_index("keyword"),
+        "keyword.type" => token_type_index("type"),
         "keyword.operator" => token_type_index("operator"),
         "type.builtin" => token_type_index("builtinType"),
         "type.definition" | "type" | "tag" | "tag.builtin" | "tag.attribute" | "tag.delimiter" => {
@@ -250,13 +258,12 @@ pub fn capture_to_token_type(capture: &str) -> Option<u32> {
         "constant.macro" => token_type_index("macro"),
         "constant.builtin" | "constant" => token_type_index("const"),
         "operator" => token_type_index("operator"),
-        "punctuation.delimiter"
-        | "punctuation.bracket"
-        | "punctuation.special"
-        | "punctuation" => token_type_index("punctuation"),
+        "punctuation.delimiter" | "punctuation.bracket" | "punctuation.special" | "punctuation" => {
+            token_type_index("punctuation")
+        }
         "module.builtin" | "module" => token_type_index("namespace"),
         "attribute.builtin" => token_type_index("builtinAttribute"),
-        "attribute" => token_type_index("attribute"),
+        "attribute" => token_type_index("decorator"),
         "markup" | "diff" => None,
         _ => None,
     }

@@ -420,6 +420,26 @@
 				"id": "unsafe",
 				"description": "Style for unsafe operations, like unsafe function calls, as well as the `unsafe` token"
 			}
+		],
+		"semanticTokenScopes": [
+			{
+				"language": "idl",
+				"scopes": {
+					"decorator": [
+						"meta.attribute.idl"
+					],
+					"builtinAttribute": [
+						"support.type.annotation.idl"
+					],
+					"builtinType": [
+						"support.type.primitive.idl"
+					],
+					"type": [
+						"entity.name.type.idl",
+						"entity.name.idl"
+					]
+				}
+			}
 		]
 	},
 	"activationEvents": [

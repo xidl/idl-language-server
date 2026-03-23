@@ -16,9 +16,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Install Rust toolchain
-        run: rustup show
-
       - name: Cache cargo
         uses: actions/cache@v5
         with:
@@ -30,11 +27,26 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Check formatting
-        run: cargo fmt --check
+      - name: install Rust 1.92.0
+        uses: dtolnay/rust-toolchain@1.92.0
+        with:
+          components: rustfmt,clippy
 
-      - name: Lint
-        run: cargo clippy --workspace --all-targets
+      - name: install taplo
+        uses: baptiste0928/cargo-install@v3
+        with:
+          crate: taplo-cli
+
+      - name: setup env
+        run: |
+          pip3 install pre-commit
+
+      - name: Check formatting
+        run: |
+          pre-commit run -a
+      #
+      # - name: Lint
+      #   run: cargo clippy --workspace --all-targets
 
       - name: Build
         run: cargo build --verbose

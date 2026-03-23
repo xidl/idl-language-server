@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.0](https://github.com/xidl/idl-language-server/compare/v0.11.0...v0.12.0) (2026-03-23)
+
+
+### Features
+
+* update semantic token ([e7177ac](https://github.com/xidl/idl-language-server/commit/e7177acfe2d14b77689762de16f64b47f63849a2))
+
 ## [0.11.0](https://github.com/xidl/idl-language-server/compare/v0.10.0...v0.11.0) (2026-03-23)
 
 

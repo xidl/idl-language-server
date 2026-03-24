@@ -15,6 +15,7 @@
 		"lsp"
 	],
 	"license": "Apache-2.0",
+	"icon": "images/logo.png",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/xidl/idl-language-server.git"
@@ -29,7 +30,8 @@
 		"server/**",
 		"package.json",
 		"README.md",
-		"LICENSE"
+		"LICENSE",
+		"images/**"
 	],
 	"scripts": {
 		"compile": "pnpm run check-types && node esbuild.js --production",

@@ -1,6 +1,6 @@
 {
 	"name": "vscode-idl-language",
-	"version": "0.12.0",
+	"version": "0.13.0",
 	"description": "IDL language server (VS Code extension)",
 	"displayName": "IDL Language",
 	"publisher": "cathaysia",

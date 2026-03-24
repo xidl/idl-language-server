@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.0](https://github.com/xidl/idl-language-server/compare/v0.12.0...v0.13.0) (2026-03-24)
+
+
+### Features
+
+* update readme ([9c3c3bd](https://github.com/xidl/idl-language-server/commit/9c3c3bd323f83ea73aa6282a54e499d440b4e045))
+
 ## [0.12.0](https://github.com/xidl/idl-language-server/compare/v0.11.0...v0.12.0) (2026-03-23)
 
 

@@ -1,5 +1,5 @@
 # See https://pre-commit.com/hooks.html for more hooks
-exclude: ^(CHANGELOG.md)$
+exclude: ^(CHANGELOG.md)|(assets/api-reference.js)$
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v3.2.0

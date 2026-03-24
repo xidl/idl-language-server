@@ -7,7 +7,8 @@
 ## 2. Update Server Semantic Tokens
 
 - [x] 2.1 Replace legend with rust-analyzer token types/modifiers list
-- [x] 2.2 Update token mapping to preserve original token types (remove flag-token collapse)
+- [x] 2.2 Update token mapping to preserve original token types (remove
+      flag-token collapse)
 - [x] 2.3 Ensure emitted tokens only use ids present in the updated legend
 
 ## 3. Update Extension Configuration

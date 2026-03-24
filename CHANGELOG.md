@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.1](https://github.com/xidl/idl-language-server/compare/v0.13.0...v0.13.1) (2026-03-24)
+
+
+### Bug Fixes
+
+* **vscode:** fix icon ([9f22703](https://github.com/xidl/idl-language-server/commit/9f22703ef08d04d60068ce4fe89d6e99ae8c54fd))
+
 ## [0.13.0](https://github.com/xidl/idl-language-server/compare/v0.12.0...v0.13.0) (2026-03-24)
 
 

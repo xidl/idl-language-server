@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.0](https://github.com/xidl/idl-language-server/compare/v0.13.1...v0.14.0) (2026-03-30)
+
+
+### Features
+
+* add inspect hir and inspect typedast ([c58d59b](https://github.com/xidl/idl-language-server/commit/c58d59b142ca368b1a7ad3c3e1f9b300c30c231f))
+
 ## [0.13.1](https://github.com/xidl/idl-language-server/compare/v0.13.0...v0.13.1) (2026-03-24)
 
 

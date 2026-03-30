@@ -4,12 +4,12 @@ use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
 
 use crate::constants::{
-    COMMAND_VSCODE_OPEN, MSG_DOCUMENT_NOT_AVAILABLE, MSG_MISSING_DOCUMENT_URI,
-    TITLE_OPEN_HTTP_PREVIEW, TITLE_START_HTTP_PREVIEW, TITLE_STOP_HTTP_CLIENT,
-    TITLE_STOP_HTTP_PREVIEW,
+    COMMAND_INSPECT_HIR, COMMAND_INSPECT_TYPEDAST, COMMAND_VSCODE_OPEN, MSG_DOCUMENT_NOT_AVAILABLE,
+    MSG_MISSING_DOCUMENT_URI, TITLE_OPEN_HTTP_PREVIEW, TITLE_START_HTTP_PREVIEW,
+    TITLE_STOP_HTTP_CLIENT, TITLE_STOP_HTTP_PREVIEW,
 };
 use crate::context::AppContext;
-use crate::doc;
+use crate::doc::{self, InspectTarget};
 use crate::http_client;
 
 pub(crate) async fn refresh_code_lens(ctx: &AppContext) {
@@ -146,6 +146,24 @@ pub(crate) async fn execute_command(
     };
 
     match params.command.as_str() {
+        COMMAND_INSPECT_HIR | COMMAND_INSPECT_TYPEDAST => {
+            let rope = match ctx.document_map.get(&uri) {
+                Some(rope) => rope,
+                None => {
+                    ctx.client
+                        .show_message(MessageType::ERROR, MSG_DOCUMENT_NOT_AVAILABLE)
+                        .await;
+                    return Ok(None);
+                }
+            };
+            let text = rope.to_string();
+            let target = if params.command == COMMAND_INSPECT_HIR {
+                InspectTarget::Hir
+            } else {
+                InspectTarget::TypedAst
+            };
+            return Ok(Some(doc::build_inspect_value(&text, target)));
+        }
         http_client::CMD_START_HTTP_CLIENT => {
             if ctx.preview_map.contains_key(&uri) {
                 return Ok(None);

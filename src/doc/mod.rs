@@ -103,6 +103,27 @@ pub(super) fn build_hover(text: &str, rope: &Rope, uri: &Url, position: Position
     })
 }
 
+pub(crate) fn build_inspect_value(text: &str, target: InspectTarget) -> serde_json::Value {
+    match parser_text(text) {
+        Ok(spec) => match target {
+            InspectTarget::Hir => {
+                let hir = xidl_parser::hir::Specification::from(spec);
+                serde_json::to_value(hir).unwrap_or(serde_json::Value::Null)
+            }
+            InspectTarget::TypedAst => {
+                serde_json::to_value(spec).unwrap_or(serde_json::Value::Null)
+            }
+        },
+        Err(_) => serde_json::Value::Null,
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum InspectTarget {
+    Hir,
+    TypedAst,
+}
+
 fn hover_template_at_position(
     text: &str,
     rope: &Rope,

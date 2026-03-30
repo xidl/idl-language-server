@@ -10,7 +10,10 @@ use crate::analysis::{
     build_document_symbols, build_folding_ranges, build_goto_symbols, goto_declaration_locations,
     goto_definition_locations, reference_locations, rename_workspace_edit,
 };
-use crate::constants::{LANGUAGE_ID, semantic_token_modifiers, semantic_token_types};
+use crate::constants::{
+    COMMAND_INSPECT_HIR, COMMAND_INSPECT_TYPEDAST, LANGUAGE_ID, semantic_token_modifiers,
+    semantic_token_types,
+};
 use crate::context::AppContext;
 use crate::documents::{TextDocumentChange, format_text, on_change, semantic_tokens};
 use crate::handlers::{code_action, code_lens, execute_command, hover};
@@ -71,6 +74,8 @@ impl LanguageServer for Backend {
                 )),
                 execute_command_provider: Some(ExecuteCommandOptions {
                     commands: vec![
+                        COMMAND_INSPECT_HIR.to_string(),
+                        COMMAND_INSPECT_TYPEDAST.to_string(),
                         http_client::CMD_START_HTTP_CLIENT.to_string(),
                         http_client::CMD_STOP_HTTP_CLIENT.to_string(),
                     ],

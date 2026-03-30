@@ -56,6 +56,18 @@
 		"vscode-uri": "^3.1.0"
 	},
 	"contributes": {
+		"commands": [
+			{
+				"command": "idl-language-server.inspectHir",
+				"title": "Inspect HIR",
+				"category": "IDL"
+			},
+			{
+				"command": "idl-language-server.inspectTypedAst",
+				"title": "Inspect Typesast",
+				"category": "IDL"
+			}
+		],
 		"languages": [
 			{
 				"id": "idl",
@@ -445,7 +457,9 @@
 		]
 	},
 	"activationEvents": [
-		"onLanguage:idl"
+		"onLanguage:idl",
+		"onCommand:idl-language-server.inspectHir",
+		"onCommand:idl-language-server.inspectTypedAst"
 	],
 	"engines": {
 		"vscode": "^1.66.0"

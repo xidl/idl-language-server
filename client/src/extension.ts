@@ -5,7 +5,13 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { type ExtensionContext, window, workspace } from "vscode";
+import {
+	commands,
+	type ExtensionContext,
+	ViewColumn,
+	window,
+	workspace,
+} from "vscode";
 
 import {
 	type Executable,
@@ -15,6 +21,11 @@ import {
 } from "vscode-languageclient/node";
 
 let client: LanguageClient;
+
+const CMD_INSPECT_HIR = "idl-language-server.inspectHir";
+const CMD_INSPECT_TYPEDAST = "idl-language-server.inspectTypedAst";
+const SERVER_CMD_INSPECT_HIR = "idl-language-server.inspect-hir";
+const SERVER_CMD_INSPECT_TYPEDAST = "idl-language-server.inspect-typedast";
 
 function resolveServerCommand(context: ExtensionContext): string {
 	const envPath =
@@ -33,6 +44,91 @@ function resolveServerCommand(context: ExtensionContext): string {
 	}
 
 	return binName;
+}
+
+async function inspectCurrentDocument(
+	command: string,
+	title: string,
+	jsonTitle: string,
+) {
+	const editor = window.activeTextEditor;
+	if (!editor || editor.document.languageId !== "idl") {
+		await window.showErrorMessage("Open an IDL file first.");
+		return;
+	}
+
+	try {
+		const result = await client.sendRequest("workspace/executeCommand", {
+			command,
+			arguments: [editor.document.uri.toString()],
+		});
+
+		const panel = window.createWebviewPanel(
+			"idlInspectJson",
+			title,
+			ViewColumn.Beside,
+			{
+				enableFindWidget: true,
+			},
+		);
+		panel.webview.html = renderInspectHtml(
+			jsonTitle,
+			JSON.stringify(result ?? null, null, 2),
+		);
+	} catch (error) {
+		const message =
+			error instanceof Error ? error.message : "Failed to inspect document.";
+		await window.showErrorMessage(message);
+	}
+}
+
+function renderInspectHtml(title: string, content: string): string {
+	return `<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>${escapeHtml(title)}</title>
+	<style>
+		:root {
+			color-scheme: light dark;
+		}
+		body {
+			margin: 0;
+			font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+			background: var(--vscode-editor-background);
+			color: var(--vscode-editor-foreground);
+		}
+		header {
+			padding: 12px 16px;
+			border-bottom: 1px solid var(--vscode-panel-border);
+			font-size: 12px;
+			letter-spacing: 0.08em;
+			text-transform: uppercase;
+			color: var(--vscode-descriptionForeground);
+		}
+		pre {
+			margin: 0;
+			padding: 16px;
+			white-space: pre-wrap;
+			word-break: break-word;
+			font-size: 13px;
+			line-height: 1.5;
+		}
+	</style>
+</head>
+<body>
+	<header>${escapeHtml(title)}</header>
+	<pre>${escapeHtml(content)}</pre>
+</body>
+</html>`;
+}
+
+function escapeHtml(value: string): string {
+	return value
+		.replaceAll("&", "&amp;")
+		.replaceAll("<", "&lt;")
+		.replaceAll(">", "&gt;");
 }
 
 export async function activate(context: ExtensionContext) {
@@ -74,7 +170,26 @@ export async function activate(context: ExtensionContext) {
 		serverOptions,
 		clientOptions,
 	);
-	client.start();
+	context.subscriptions.push(await client.start());
+
+	context.subscriptions.push(
+		commands.registerCommand(CMD_INSPECT_HIR, async () => {
+			await inspectCurrentDocument(
+				SERVER_CMD_INSPECT_HIR,
+				"Inspect HIR",
+				"HIR",
+			);
+		}),
+	);
+	context.subscriptions.push(
+		commands.registerCommand(CMD_INSPECT_TYPEDAST, async () => {
+			await inspectCurrentDocument(
+				SERVER_CMD_INSPECT_TYPEDAST,
+				"Inspect Typesast",
+				"TypedAst",
+			);
+		}),
+	);
 }
 
 export function deactivate(): Thenable<void> | undefined {

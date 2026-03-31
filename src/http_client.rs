@@ -166,7 +166,13 @@ pub async fn start_preview(text: &str) -> anyhow::Result<PreviewHandle> {
 
     let (shutdown_tx, shutdown_rx) = oneshot::channel();
     let server_task = tokio::spawn(async move {
-        let _ = axum::serve(listener, app)
+        use tower_http::cors::{Any, CorsLayer};
+        let cors = CorsLayer::new()
+            .allow_origin(Any)
+            .allow_methods(Any)
+            .allow_headers(Any);
+
+        let _ = axum::serve(listener, app.layer(cors))
             .with_graceful_shutdown(async move {
                 let _ = shutdown_rx.await;
             })

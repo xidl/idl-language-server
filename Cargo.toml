@@ -26,3 +26,4 @@ xidl-parser = "0.30.0"
 axum = "0.8.3"
 utoipa = "5.4.0"
 utoipa-scalar = { version = "0.3", features = ["axum"] }
+tower-http = { version = "0.6.8", features = ["cors"] }

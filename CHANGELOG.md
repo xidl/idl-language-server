@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.1](https://github.com/xidl/idl-language-server/compare/v0.14.0...v0.14.1) (2026-03-31)
+
+
+### Bug Fixes
+
+* fix cors problem ([843e8d7](https://github.com/xidl/idl-language-server/commit/843e8d71f6d7c7f4b4a6dfe2925314d30d702f31))
+
 ## [0.14.0](https://github.com/xidl/idl-language-server/compare/v0.13.1...v0.14.0) (2026-03-30)
 
 

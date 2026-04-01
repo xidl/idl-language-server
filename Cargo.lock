@@ -750,6 +750,7 @@ dependencies = [
  "rust-embed",
  "serde",
  "serde_json",
+ "strsim",
  "thiserror",
  "tokio",
  "tower-http",

@@ -1,6 +1,7 @@
 use log::debug;
 use ropey::Rope;
 use std::collections::HashSet;
+use strsim::jaro_winkler;
 use tower_lsp::lsp_types::*;
 use tree_sitter::{Node, Parser, Query, QueryCursor, StreamingIterator};
 use tree_sitter_highlight::{HighlightConfiguration, HighlightEvent, Highlighter};
@@ -239,13 +240,19 @@ pub(crate) fn build_diagnostics(text: &str) -> Vec<Diagnostic> {
         if defined_types.contains(&name) {
             continue;
         }
+        let message = match closest_type_match(&name, &defined_types) {
+            Some(suggestion) => {
+                format!("Unknown type in current file: {name}. Did you mean {suggestion}?")
+            }
+            None => format!("Unknown type in current file: {name}"),
+        };
         diagnostics.push(Diagnostic {
             range,
             severity: Some(DiagnosticSeverity::WARNING),
             code: None,
             code_description: None,
             source: Some(DIAGNOSTIC_SOURCE.to_string()),
-            message: format!("Unknown type in current file: {name}"),
+            message,
             related_information: None,
             tags: None,
             data: None,
@@ -625,32 +632,65 @@ fn node_text(node: Node<'_>, text: &str) -> Option<String> {
         .map(|name| name.trim().to_string())
 }
 
+fn closest_type_match<'a>(name: &str, defined_types: &'a HashSet<String>) -> Option<&'a str> {
+    let mut best_match: Option<(&str, f64)> = None;
+    let lowercase_name = name.to_ascii_lowercase();
+    for candidate in builtin_types()
+        .iter()
+        .copied()
+        .chain(defined_types.iter().map(String::as_str))
+    {
+        if candidate == name {
+            return Some(candidate);
+        }
+        let lowercase_candidate = candidate.to_ascii_lowercase();
+        let score = jaro_winkler(&lowercase_name, &lowercase_candidate);
+        if score < 0.80 {
+            continue;
+        }
+        if best_match.is_none_or(|(_, best_score)| score > best_score) {
+            best_match = Some((candidate, score));
+        }
+    }
+    best_match.map(|(candidate, _)| candidate)
+}
+
+fn builtin_types() -> &'static [&'static str] {
+    &[
+        "short",
+        "int16",
+        "long",
+        "int32",
+        "long long",
+        "int64",
+        "uint8",
+        "boolean",
+        "fixed",
+        "octet",
+        "int8",
+        "unsigned short",
+        "uint16",
+        "unsigned long",
+        "uint32",
+        "unsigned long long",
+        "uint64",
+        "float",
+        "double",
+        "long double",
+        "char",
+        "wchar",
+        "string",
+        "wstring",
+        "any",
+        "Object",
+        "ValueBase",
+        "sequence",
+        "map",
+    ]
+}
+
 fn is_builtin_type(name: &str) -> bool {
-    matches!(
-        name,
-        "short"
-            | "long"
-            | "int8"
-            | "int16"
-            | "int32"
-            | "int64"
-            | "uint8"
-            | "uint16"
-            | "uint32"
-            | "uint64"
-            | "float"
-            | "double"
-            | "longdouble"
-            | "char"
-            | "wchar"
-            | "boolean"
-            | "octet"
-            | "string"
-            | "wstring"
-            | "any"
-            | "Object"
-            | "ValueBase"
-    )
+    builtin_types().contains(&name)
 }
 
 pub(crate) fn node_range(node: Node<'_>, rope: &Rope) -> Range {
@@ -873,6 +913,38 @@ interface Service {
     }
 
     #[test]
+    fn diagnostics_suggests_builtin_type_name() {
+        let source = r#"
+interface Service {
+    void takeString(strng value);
+};
+"#;
+
+        let diagnostics = build_diagnostics(source);
+        assert!(diagnostics.iter().any(|diagnostic| {
+            diagnostic.severity == Some(DiagnosticSeverity::WARNING)
+                && diagnostic.message == "Unknown type in current file: strng. Did you mean string?"
+        }));
+    }
+
+    #[test]
+    fn diagnostics_suggests_custom_type_name() {
+        let source = r#"
+typedef long Foo;
+
+interface Service {
+    void takeFoo(Fob value);
+};
+"#;
+
+        let diagnostics = build_diagnostics(source);
+        assert!(diagnostics.iter().any(|diagnostic| {
+            diagnostic.severity == Some(DiagnosticSeverity::WARNING)
+                && diagnostic.message == "Unknown type in current file: Fob. Did you mean Foo?"
+        }));
+    }
+
+    #[test]
     fn folding_ranges_include_interface_and_module() {
         let source = r#"
 module M {
@@ -986,6 +1058,6 @@ interface Bar {
             .expect("template missing")
             .render(ctx)
             .expect("render failed");
-        assert!(rendered.contains("HTTP Mapping"));
+        assert!(rendered.contains("XIDL HTTP mapping"));
     }
 }

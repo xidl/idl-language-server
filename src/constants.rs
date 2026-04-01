@@ -76,6 +76,7 @@ pub const SEMANTIC_TOKEN_MODIFIERS: &[&str] = &[
     "consuming",
     "controlFlow",
     "crateRoot",
+    "defaultLibrary",
     "injected",
     "intraDocLink",
     "library",
@@ -88,75 +89,94 @@ pub const SEMANTIC_TOKEN_MODIFIERS: &[&str] = &[
     "unsafe",
 ];
 
+// https://neovim.io/doc/user/treesitter.html#treesitter-highlight-groups
 pub const HIGHLIGHT_NAMES: &[&str] = &[
-    "comment.documentation",
-    "comment.block",
-    "comment.block.documentation",
-    "comment.error",
-    "comment.line",
-    "comment.line.documentation",
-    "comment.warning",
-    "comment.todo",
-    "comment.note",
-    "string.documentation",
-    "string.escape",
-    "string.regexp",
-    "string.special",
-    "string.special.symbol",
-    "string.special.path",
-    "string.special.url",
-    "character.special",
-    "number.float",
-    "type.builtin",
-    "type.definition",
+    "variable",
     "variable.builtin",
     "variable.parameter",
     "variable.parameter.builtin",
     "variable.member",
+    "constant",
     "constant.builtin",
     "constant.macro",
+    "module",
+    "module.builtin",
+    "label",
+    "string",
+    "string.documentation",
+    "string.regexp",
+    "string.escape",
+    "string.special",
+    "string.special.symbol",
+    "string.special.path",
+    "string.special.url",
+    "character",
+    "character.special",
+    "boolean",
+    "number",
+    "number.float",
+    "type",
+    "type.builtin",
+    "type.definition",
+    "attribute",
+    "attribute.builtin",
+    "property",
+    "function",
     "function.builtin",
     "function.call",
     "function.macro",
     "function.method",
     "function.method.call",
-    "attribute.builtin",
-    "module.builtin",
-    "keyword.directive",
-    "keyword.directive.define",
-    "keyword.conditional",
-    "keyword.conditional.ternary",
-    "keyword.exception",
-    "keyword.import",
-    "keyword.operator",
+    "constructor",
+    "operator",
+    "keyword",
     "keyword.coroutine",
     "keyword.function",
+    "keyword.operator",
+    "keyword.import",
+    "keyword.type",
     "keyword.modifier",
     "keyword.repeat",
     "keyword.return",
     "keyword.debug",
-    "keyword.type",
+    "keyword.exception",
+    "keyword.conditional",
+    "keyword.conditional.ternary",
+    "keyword.directive",
+    "keyword.directive.define",
     "punctuation.delimiter",
     "punctuation.bracket",
     "punctuation.special",
     "comment",
-    "string",
-    "character",
-    "number",
-    "boolean",
-    "keyword",
-    "type",
-    "variable",
-    "constant",
-    "function",
-    "attribute",
-    "module",
-    "property",
-    "operator",
-    "punctuation",
-    "markup",
-    "diff",
-    "label",
+    "comment.documentation",
+    "comment.error",
+    "comment.warning",
+    "comment.todo",
+    "comment.note",
+    "markup.strong",
+    "markup.italic",
+    "markup.strikethrough",
+    "markup.underline",
+    "markup.heading",
+    "markup.heading.1",
+    "markup.heading.2",
+    "markup.heading.3",
+    "markup.heading.4",
+    "markup.heading.5",
+    "markup.heading.6",
+    "markup.quote",
+    "markup.math",
+    "markup.link",
+    "markup.link.label",
+    "markup.link.url",
+    "markup.raw",
+    "markup.raw.block",
+    "markup.list",
+    "markup.list.checked",
+    "markup.list.unchecked",
+    "diff.plus",
+    "diff.minus",
+    "diff.delta",
     "tag",
     "tag.builtin",
     "tag.attribute",
@@ -208,7 +228,40 @@ fn token_type_index(token_type: &str) -> Option<u32> {
     map.get(token_type).copied()
 }
 
-pub fn capture_to_token_type(capture: &str) -> Option<u32> {
+fn token_modifier_index(modifier: &str) -> Option<u32> {
+    static TOKEN_MODIFIER_MAP: OnceLock<HashMap<&'static str, u32>> = OnceLock::new();
+    let map = TOKEN_MODIFIER_MAP.get_or_init(|| {
+        SEMANTIC_TOKEN_MODIFIERS
+            .iter()
+            .enumerate()
+            .map(|(index, &name)| (name, index as u32))
+            .collect()
+    });
+    map.get(modifier).copied()
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct SemanticTokenInfo {
+    pub token_type: u32,
+    pub token_modifiers_bitset: u32,
+}
+
+fn token(token_type: &str, modifiers: &[&str]) -> Option<SemanticTokenInfo> {
+    let token_type = token_type_index(token_type)?;
+    let mut token_modifiers_bitset = 0u32;
+
+    for modifier in modifiers {
+        let index = token_modifier_index(modifier)?;
+        token_modifiers_bitset |= 1 << index;
+    }
+
+    Some(SemanticTokenInfo {
+        token_type,
+        token_modifiers_bitset,
+    })
+}
+
+pub fn capture_to_semantic_token(capture: &str) -> Option<SemanticTokenInfo> {
     match capture {
         "comment.documentation"
         | "comment.block"
@@ -219,20 +272,20 @@ pub fn capture_to_token_type(capture: &str) -> Option<u32> {
         | "comment.warning"
         | "comment.todo"
         | "comment.note"
-        | "comment" => token_type_index("comment"),
+        | "comment" => token("comment", &[]),
         "string.documentation"
         | "string.special"
         | "string.special.symbol"
         | "string.special.path"
         | "string.special.url"
-        | "string" => token_type_index("string"),
-        "string.escape" => token_type_index("escapeSequence"),
-        "string.regexp" => token_type_index("regexp"),
-        "character.special" | "character" => token_type_index("character"),
-        "number.float" | "number" => token_type_index("number"),
-        "boolean" => token_type_index("boolean"),
-        "keyword.modifier" => token_type_index("keyword"),
-        "keyword.directive" => token_type_index("macro"),
+        | "string" => token("string", &[]),
+        "string.escape" => token("escapeSequence", &[]),
+        "string.regexp" => token("regexp", &[]),
+        "character.special" | "character" => token("character", &[]),
+        "number.float" | "number" => token("number", &[]),
+        "boolean" => token("boolean", &[]),
+        "keyword.modifier" => token("keyword", &[]),
+        "keyword.directive" => token("macro", &[]),
         "keyword.directive.define"
         | "keyword.conditional"
         | "keyword.conditional.ternary"
@@ -243,29 +296,34 @@ pub fn capture_to_token_type(capture: &str) -> Option<u32> {
         | "keyword.repeat"
         | "keyword.return"
         | "keyword.debug"
-        | "keyword" => token_type_index("keyword"),
-        "keyword.type" => token_type_index("type"),
-        "keyword.operator" => token_type_index("operator"),
-        "type.builtin" => token_type_index("builtinType"),
+        | "keyword" => token("keyword", &[]),
+        "keyword.type" => token("keyword", &[]),
+        "keyword.operator" => token("operator", &[]),
+        "type.builtin" => token("type", &["defaultLibrary"]),
         "type.definition" | "type" | "tag" | "tag.builtin" | "tag.attribute" | "tag.delimiter" => {
-            token_type_index("type")
+            token("type", &[])
         }
-        "function.macro" => token_type_index("macro"),
-        "function.method" | "function.method.call" => token_type_index("method"),
-        "function.builtin" | "function.call" | "function" => token_type_index("function"),
-        "variable.parameter" | "variable.parameter.builtin" => token_type_index("parameter"),
-        "variable.member" | "property" => token_type_index("property"),
-        "variable.builtin" | "variable" => token_type_index("variable"),
-        "label" => token_type_index("label"),
-        "constant.macro" => token_type_index("macro"),
-        "constant.builtin" | "constant" => token_type_index("const"),
-        "operator" => token_type_index("operator"),
+        "function.macro" => token("macro", &[]),
+        "function.method" | "function.method.call" => token("method", &[]),
+        "function.builtin" => token("function", &["defaultLibrary"]),
+        "function.call" | "function" => token("function", &[]),
+        "variable.parameter" => token("parameter", &[]),
+        "variable.parameter.builtin" => token("parameter", &["defaultLibrary"]),
+        "variable.member" | "property" => token("property", &[]),
+        "variable.builtin" => token("variable", &["defaultLibrary"]),
+        "variable" => token("variable", &[]),
+        "label" => token("label", &[]),
+        "constant.macro" => token("macro", &[]),
+        "constant.builtin" => token("const", &["defaultLibrary"]),
+        "constant" => token("const", &[]),
+        "operator" => token("operator", &[]),
         "punctuation.delimiter" | "punctuation.bracket" | "punctuation.special" | "punctuation" => {
-            token_type_index("punctuation")
+            token("punctuation", &[])
         }
-        "module.builtin" | "module" => token_type_index("namespace"),
-        "attribute.builtin" => token_type_index("builtinAttribute"),
-        "attribute" => token_type_index("decorator"),
+        "module.builtin" => token("namespace", &["defaultLibrary"]),
+        "module" => token("namespace", &[]),
+        "attribute.builtin" => token("property", &["defaultLibrary"]),
+        "attribute" => token("property", &[]),
         "markup" | "diff" => None,
         _ => None,
     }

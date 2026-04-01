@@ -6,7 +6,7 @@ use tree_sitter_highlight::{HighlightConfiguration, HighlightEvent, Highlighter}
 
 use crate::constants::{
     DIAGNOSTIC_SOURCE, DIAGNOSTICS_QUERY, DOCUMENT_SYMBOL_QUERY, FOLDING_QUERY, GOTO_QUERY,
-    HIGHLIGHT_NAMES, capture_to_token_type,
+    HIGHLIGHT_NAMES, capture_to_semantic_token,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
@@ -628,14 +628,14 @@ pub(crate) fn build_highlight_tokens(text: &str, rope: &Rope) -> Vec<SemanticTok
         debug!("no highlight events produced for source");
     }
 
-    let mut incomplete_tokens: Vec<(u32, u32, u32, u32)> = Vec::new();
+    let mut incomplete_tokens: Vec<(u32, u32, u32, u32, u32)> = Vec::new();
     for (start, end, highlight_index) in raw_spans {
         let capture_name = match HIGHLIGHT_NAMES.get(highlight_index) {
             Some(name) => *name,
             None => continue,
         };
-        let token_type = match capture_to_token_type(capture_name) {
-            Some(token_type) => token_type,
+        let token = match capture_to_semantic_token(capture_name) {
+            Some(token) => token,
             None => continue,
         };
 
@@ -659,7 +659,8 @@ pub(crate) fn build_highlight_tokens(text: &str, rope: &Rope) -> Vec<SemanticTok
                     line as u32,
                     char_offset as u32,
                     length as u32,
-                    token_type,
+                    token.token_type,
+                    token.token_modifiers_bitset,
                 ));
             }
             cur = seg_end;
@@ -672,7 +673,7 @@ pub(crate) fn build_highlight_tokens(text: &str, rope: &Rope) -> Vec<SemanticTok
     let mut pre_line: u32 = 0;
     let mut pre_start: u32 = 0;
 
-    for (line, start, length, token_type) in incomplete_tokens {
+    for (line, start, length, token_type, token_modifiers_bitset) in incomplete_tokens {
         let delta_line = line - pre_line;
         let delta_start = if delta_line == 0 {
             start - pre_start
@@ -684,7 +685,7 @@ pub(crate) fn build_highlight_tokens(text: &str, rope: &Rope) -> Vec<SemanticTok
             delta_start,
             length,
             token_type,
-            token_modifiers_bitset: 0,
+            token_modifiers_bitset,
         });
         pre_line = line;
         pre_start = start;

@@ -395,6 +395,10 @@
 				"description": "Style for names resolving to a crate root"
 			},
 			{
+				"id": "defaultLibrary",
+				"description": "Style for symbols that are part of the language default library or built-in surface"
+			},
+			{
 				"id": "injected",
 				"description": "Style for doc-string injected highlighting like rust source blocks in documentation"
 			},

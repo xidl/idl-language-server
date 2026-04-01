@@ -461,6 +461,11 @@
 		"onCommand:idl-language-server.inspectHir",
 		"onCommand:idl-language-server.inspectTypedAst"
 	],
+	"configurationDefaults": {
+		"idl": {
+			"editor.semanticHighlighting.enabled": true
+		}
+	},
 	"engines": {
 		"vscode": "^1.66.0"
 	},

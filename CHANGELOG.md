@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.15.0](https://github.com/xidl/idl-language-server/compare/v0.14.1...v0.15.0) (2026-04-01)
+
+
+### Features
+
+* **lsp:** update semantic token ([e991723](https://github.com/xidl/idl-language-server/commit/e9917238038ac1833a8a63ce0e42c5894cdabad1))
+* **vscode:** enable semanticHighlighting by default ([107c5ea](https://github.com/xidl/idl-language-server/commit/107c5ea965e5e039987f7a3288746576a9ecbe35))
+
 ## [0.14.1](https://github.com/xidl/idl-language-server/compare/v0.14.0...v0.14.1) (2026-03-31)
 
 

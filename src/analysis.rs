@@ -1,5 +1,6 @@
 use log::debug;
 use ropey::Rope;
+use std::collections::HashSet;
 use tower_lsp::lsp_types::*;
 use tree_sitter::{Node, Parser, Query, QueryCursor, StreamingIterator};
 use tree_sitter_highlight::{HighlightConfiguration, HighlightEvent, Highlighter};
@@ -158,6 +159,9 @@ pub(crate) fn build_diagnostics(text: &str) -> Vec<Diagnostic> {
     let mut cursor = QueryCursor::new();
     let capture_names = query.capture_names();
     let mut diagnostics = Vec::new();
+    let mut defined_types = HashSet::new();
+    let mut missing_type_diagnostics = Vec::new();
+    let mut seen_missing_ranges = HashSet::new();
     let mut captures = cursor.captures(&query, tree.root_node(), text.as_bytes());
     while let Some((m, idx)) = captures.next() {
         let capture = m.captures[*idx];
@@ -165,26 +169,83 @@ pub(crate) fn build_diagnostics(text: &str) -> Vec<Diagnostic> {
             Some(name) => *name,
             None => continue,
         };
-        if capture_name != "error" {
+        match capture_name {
+            "error" => {
+                let range = Range {
+                    start: Position::new(
+                        capture.node.start_position().row as u32,
+                        capture.node.start_position().column as u32,
+                    ),
+                    end: Position::new(
+                        capture.node.end_position().row as u32,
+                        capture.node.end_position().column as u32,
+                    ),
+                };
+                diagnostics.push(Diagnostic {
+                    range,
+                    severity: Some(DiagnosticSeverity::ERROR),
+                    code: None,
+                    code_description: None,
+                    source: Some(DIAGNOSTIC_SOURCE.to_string()),
+                    message: "Parse error".to_string(),
+                    related_information: None,
+                    tags: None,
+                    data: None,
+                });
+            }
+            "type.def" => {
+                let Some(name) = node_text(capture.node, text) else {
+                    continue;
+                };
+                if !name.is_empty() {
+                    defined_types.insert(name);
+                }
+            }
+            "type.ref" => {
+                let Some(name) = node_text(capture.node, text) else {
+                    continue;
+                };
+                if name.is_empty() || is_builtin_type(&name) || defined_types.contains(&name) {
+                    continue;
+                }
+
+                let range = Range {
+                    start: Position::new(
+                        capture.node.start_position().row as u32,
+                        capture.node.start_position().column as u32,
+                    ),
+                    end: Position::new(
+                        capture.node.end_position().row as u32,
+                        capture.node.end_position().column as u32,
+                    ),
+                };
+                let range_key = (
+                    range.start.line,
+                    range.start.character,
+                    range.end.line,
+                    range.end.character,
+                );
+                if !seen_missing_ranges.insert(range_key) {
+                    continue;
+                }
+
+                missing_type_diagnostics.push((name, range));
+            }
+            _ => {}
+        }
+    }
+
+    for (name, range) in missing_type_diagnostics {
+        if defined_types.contains(&name) {
             continue;
         }
-        let range = Range {
-            start: Position::new(
-                capture.node.start_position().row as u32,
-                capture.node.start_position().column as u32,
-            ),
-            end: Position::new(
-                capture.node.end_position().row as u32,
-                capture.node.end_position().column as u32,
-            ),
-        };
         diagnostics.push(Diagnostic {
             range,
-            severity: Some(DiagnosticSeverity::ERROR),
+            severity: Some(DiagnosticSeverity::WARNING),
             code: None,
             code_description: None,
             source: Some(DIAGNOSTIC_SOURCE.to_string()),
-            message: "Parse error".to_string(),
+            message: format!("Unknown type in current file: {name}"),
             related_information: None,
             tags: None,
             data: None,
@@ -558,6 +619,40 @@ fn node_key(node: Node<'_>) -> NodeKey {
     }
 }
 
+fn node_text(node: Node<'_>, text: &str) -> Option<String> {
+    node.utf8_text(text.as_bytes())
+        .ok()
+        .map(|name| name.trim().to_string())
+}
+
+fn is_builtin_type(name: &str) -> bool {
+    matches!(
+        name,
+        "short"
+            | "long"
+            | "int8"
+            | "int16"
+            | "int32"
+            | "int64"
+            | "uint8"
+            | "uint16"
+            | "uint32"
+            | "uint64"
+            | "float"
+            | "double"
+            | "longdouble"
+            | "char"
+            | "wchar"
+            | "boolean"
+            | "octet"
+            | "string"
+            | "wstring"
+            | "any"
+            | "Object"
+            | "ValueBase"
+    )
+}
+
 pub(crate) fn node_range(node: Node<'_>, rope: &Rope) -> Range {
     Range {
         start: byte_to_position(rope, node.start_byte()),
@@ -741,6 +836,40 @@ bitmask Flags {
         let source = "interface A { void m( }";
         let diagnostics = build_diagnostics(source);
         assert!(!diagnostics.is_empty());
+    }
+
+    #[test]
+    fn diagnostics_warns_for_missing_non_builtin_type_in_current_file() {
+        let source = r#"
+interface Service {
+    void takeFoo(Foo value);
+};
+"#;
+
+        let diagnostics = build_diagnostics(source);
+        assert!(diagnostics.iter().any(|diagnostic| {
+            diagnostic.severity == Some(DiagnosticSeverity::WARNING)
+                && diagnostic.message == "Unknown type in current file: Foo"
+        }));
+    }
+
+    #[test]
+    fn diagnostics_does_not_warn_for_defined_or_builtin_types() {
+        let source = r#"
+typedef long Foo;
+
+interface Service {
+    void takeFoo(Foo value);
+    void takeLong(long value);
+};
+"#;
+
+        let diagnostics = build_diagnostics(source);
+        assert!(
+            !diagnostics
+                .iter()
+                .any(|diagnostic| { diagnostic.severity == Some(DiagnosticSeverity::WARNING) })
+        );
     }
 
     #[test]

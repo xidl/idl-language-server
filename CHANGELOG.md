@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.16.0](https://github.com/xidl/idl-language-server/compare/v0.15.0...v0.16.0) (2026-04-01)
+
+
+### Features
+
+* **diagnostics:** warn on missing local type references ([3d71e08](https://github.com/xidl/idl-language-server/commit/3d71e083186d77628545f58e0bc1db001d546721))
+
 ## [0.15.0](https://github.com/xidl/idl-language-server/compare/v0.14.1...v0.15.0) (2026-04-01)
 
 

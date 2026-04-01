@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.16.1](https://github.com/xidl/idl-language-server/compare/v0.16.0...v0.16.1) (2026-04-01)
+
+
+### Bug Fixes
+
+* **diagnostics:** suggest similar types for unknown type warnings ([f0b38fc](https://github.com/xidl/idl-language-server/commit/f0b38fcf301520269d381f930e44359d54ef0338))
+
 ## [0.16.0](https://github.com/xidl/idl-language-server/compare/v0.15.0...v0.16.0) (2026-04-01)
 
 

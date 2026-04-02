@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.17.0](https://github.com/xidl/idl-language-server/compare/v0.16.1...v0.17.0) (2026-04-02)
+
+
+### Features
+
+* **lsp:** add quickfix for unknown type suggestions ([5463d2a](https://github.com/xidl/idl-language-server/commit/5463d2a675ee7cdc50c7b65b3201ce9f0b14ab4e))
+
 ## [0.16.1](https://github.com/xidl/idl-language-server/compare/v0.16.0...v0.16.1) (2026-04-01)
 
 

@@ -93,10 +93,12 @@ pub(crate) fn hover(ctx: &AppContext, uri: &Url, position: Position) -> Option<H
 pub(crate) fn code_action(
     ctx: &AppContext,
     uri: &Url,
-    position: Position,
+    params: &CodeActionParams,
 ) -> Option<CodeActionResponse> {
     let rope = ctx.document_map.get(uri.as_str())?;
     let text = rope.to_string();
+    let position = params.range.start;
+    let mut actions = suggestion_code_actions(uri, &params.context.diagnostics);
 
     let relevant = http_client::document_is_http_relevant(&text);
     let on_interface = http_client::interface_name_at_position(&text, &rope, position);
@@ -104,29 +106,65 @@ pub(crate) fn code_action(
         "code_action: uri={} relevant={} on_interface={}",
         uri, relevant, on_interface
     );
-    if !relevant || !on_interface {
-        return None;
+    if relevant && on_interface {
+        let is_running = ctx.preview_map.contains_key(uri.as_str());
+        let (title, command) = if is_running {
+            (TITLE_STOP_HTTP_PREVIEW, http_client::CMD_STOP_HTTP_CLIENT)
+        } else {
+            (TITLE_START_HTTP_PREVIEW, http_client::CMD_START_HTTP_CLIENT)
+        };
+
+        let action = CodeAction {
+            title: title.to_string(),
+            kind: Some(CodeActionKind::QUICKFIX),
+            command: Some(Command {
+                title: title.to_string(),
+                command: command.to_string(),
+                arguments: Some(vec![serde_json::Value::String(uri.to_string())]),
+            }),
+            ..CodeAction::default()
+        };
+
+        actions.push(CodeActionOrCommand::CodeAction(action));
     }
 
-    let is_running = ctx.preview_map.contains_key(uri.as_str());
-    let (title, command) = if is_running {
-        (TITLE_STOP_HTTP_PREVIEW, http_client::CMD_STOP_HTTP_CLIENT)
-    } else {
-        (TITLE_START_HTTP_PREVIEW, http_client::CMD_START_HTTP_CLIENT)
-    };
+    (!actions.is_empty()).then_some(actions)
+}
 
-    let action = CodeAction {
-        title: title.to_string(),
-        kind: Some(CodeActionKind::QUICKFIX),
-        command: Some(Command {
-            title: title.to_string(),
-            command: command.to_string(),
-            arguments: Some(vec![serde_json::Value::String(uri.to_string())]),
-        }),
-        ..CodeAction::default()
-    };
+fn suggestion_code_actions(uri: &Url, diagnostics: &[Diagnostic]) -> CodeActionResponse {
+    diagnostics
+        .iter()
+        .filter_map(|diagnostic| {
+            suggestion_from_message(&diagnostic.message).map(|suggestion| (diagnostic, suggestion))
+        })
+        .map(|(diagnostic, suggestion)| {
+            CodeActionOrCommand::CodeAction(CodeAction {
+                title: format!("Change to `{suggestion}`"),
+                kind: Some(CodeActionKind::QUICKFIX),
+                diagnostics: Some(vec![diagnostic.clone()]),
+                edit: Some(WorkspaceEdit {
+                    changes: Some(std::collections::HashMap::from([(
+                        uri.clone(),
+                        vec![TextEdit {
+                            range: diagnostic.range,
+                            new_text: suggestion,
+                        }],
+                    )])),
+                    ..WorkspaceEdit::default()
+                }),
+                is_preferred: Some(true),
+                ..CodeAction::default()
+            })
+        })
+        .collect()
+}
 
-    Some(vec![CodeActionOrCommand::CodeAction(action)])
+fn suggestion_from_message(message: &str) -> Option<String> {
+    let prefix = "Unknown type in current file: ";
+    let marker = ". Did you mean ";
+    let rest = message.strip_prefix(prefix)?;
+    let (_, suggestion_with_q) = rest.split_once(marker)?;
+    suggestion_with_q.strip_suffix('?').map(str::to_string)
 }
 
 pub(crate) async fn execute_command(
@@ -269,4 +307,59 @@ pub(crate) fn code_lens(ctx: &AppContext, uri: &Url) -> Option<Vec<CodeLens>> {
     }
 
     Some(lenses)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{suggestion_code_actions, suggestion_from_message};
+    use tower_lsp::lsp_types::{
+        CodeActionOrCommand, Diagnostic, DiagnosticSeverity, Position, Range, Url,
+    };
+
+    #[test]
+    fn extracts_suggestion_from_unknown_type_message() {
+        let message = "Unknown type in current file: uant8. Did you mean uint8?";
+        assert_eq!(suggestion_from_message(message).as_deref(), Some("uint8"));
+    }
+
+    #[test]
+    fn ignores_unknown_type_message_without_suggestion() {
+        let message = "Unknown type in current file: Foo";
+        assert_eq!(suggestion_from_message(message), None);
+    }
+
+    #[test]
+    fn builds_quickfix_for_suggested_type_diagnostic() {
+        let uri = Url::parse("file:///test.idl").unwrap();
+        let diagnostic = Diagnostic {
+            range: Range {
+                start: Position::new(3, 17),
+                end: Position::new(3, 22),
+            },
+            severity: Some(DiagnosticSeverity::WARNING),
+            code: None,
+            code_description: None,
+            source: Some("idl".to_string()),
+            message: "Unknown type in current file: uant8. Did you mean uint8?".to_string(),
+            related_information: None,
+            tags: None,
+            data: None,
+        };
+
+        let actions = suggestion_code_actions(&uri, &[diagnostic.clone()]);
+        assert_eq!(actions.len(), 1);
+
+        let CodeActionOrCommand::CodeAction(action) = &actions[0] else {
+            panic!("expected code action");
+        };
+
+        assert_eq!(action.title, "Change to `uint8`");
+        assert_eq!(action.diagnostics.as_ref(), Some(&vec![diagnostic.clone()]));
+        let edit = action.edit.as_ref().expect("workspace edit");
+        let changes = edit.changes.as_ref().expect("changes");
+        let text_edits = changes.get(&uri).expect("uri edits");
+        assert_eq!(text_edits.len(), 1);
+        assert_eq!(text_edits[0].range, diagnostic.range);
+        assert_eq!(text_edits[0].new_text, "uint8");
+    }
 }

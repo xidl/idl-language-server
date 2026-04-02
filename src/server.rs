@@ -271,9 +271,8 @@ impl LanguageServer for Backend {
     }
 
     async fn code_action(&self, params: CodeActionParams) -> Result<Option<CodeActionResponse>> {
-        let uri = params.text_document.uri;
-        let position = params.range.start;
-        Ok(code_action(&self.ctx, &uri, position))
+        let uri = params.text_document.uri.clone();
+        Ok(code_action(&self.ctx, &uri, &params))
     }
 
     async fn execute_command(

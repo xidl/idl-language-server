@@ -65,7 +65,7 @@ jobs:
           tar -czf dist/idl-language-server-${{ matrix.platform.target }}.tar.gz -C target/${{ matrix.platform.target }}/release ${BIN_NAME}
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node
         uses: actions/setup-node@v6
@@ -159,7 +159,7 @@ jobs:
           path: dist
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@v6
 
       - name: install taplo
         uses: baptiste0928/cargo-install@v3

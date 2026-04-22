@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.19.0](https://github.com/xidl/idl-language-server/compare/v0.18.0...v0.19.0) (2026-04-22)
+
+
+### Features
+
+* bump xidl to 0.47.0 ([da4451e](https://github.com/xidl/idl-language-server/commit/da4451e68da8a8d18a2dc52420e42ed112f2a3bf))
+
 ## [0.18.0](https://github.com/xidl/idl-language-server/compare/v0.17.0...v0.18.0) (2026-04-03)
 
 

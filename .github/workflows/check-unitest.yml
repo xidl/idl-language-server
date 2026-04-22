@@ -27,9 +27,10 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: install Rust 1.92.0
-        uses: dtolnay/rust-toolchain@1.92.0
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: 1.92.0
           components: rustfmt,clippy
 
       - name: install taplo

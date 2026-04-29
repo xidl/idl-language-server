@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.20.0](https://github.com/xidl/idl-language-server/compare/v0.19.0...v0.20.0) (2026-04-29)
+
+
+### Features
+
+* bump env_logger from 0.11.5 to 0.11.6 ([#36](https://github.com/xidl/idl-language-server/issues/36)) ([a9f6c51](https://github.com/xidl/idl-language-server/commit/a9f6c51500a378dddfdf7390905a6e45fb8be50a))
+* bump log from 0.4.22 to 0.4.29 ([#35](https://github.com/xidl/idl-language-server/issues/35)) ([9228de7](https://github.com/xidl/idl-language-server/commit/9228de75adae2f98517b2d962652a96ecd5a4b05))
+* bump ropey from 1.6.0 to 1.6.1 ([#34](https://github.com/xidl/idl-language-server/issues/34)) ([6ee0bcc](https://github.com/xidl/idl-language-server/commit/6ee0bccd5e74272c9e9e1a9955f1f666f2a036cd))
+* bump tokio from 1.50.0 to 1.52.1 ([#37](https://github.com/xidl/idl-language-server/issues/37)) ([8b6f218](https://github.com/xidl/idl-language-server/commit/8b6f218cf97abf2b5bae7281adcf2ee8e35b9dbc))
+* bump xidl-parser from 0.47.0 to 0.50.2 ([#39](https://github.com/xidl/idl-language-server/issues/39)) ([2486239](https://github.com/xidl/idl-language-server/commit/2486239518d3a35234cd24edcdbff23aa9a900a7))
+* bump xidlc from 0.47.0 to 0.50.2 ([#38](https://github.com/xidl/idl-language-server/issues/38)) ([42f714b](https://github.com/xidl/idl-language-server/commit/42f714befa7585bbb2b356be9bcce9d098acadd7))
+
 ## [0.19.0](https://github.com/xidl/idl-language-server/compare/v0.18.0...v0.19.0) (2026-04-22)
 
 

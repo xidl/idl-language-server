@@ -26,7 +26,7 @@ xidlc = { version = "0.50.2", default-features = false, features = [
 xidl-parser = "0.50.2"
 rust-embed = "8.4.0"
 minijinja = "2.1.0"
-axum = "0.8.3"
+axum = "0.8.9"
 utoipa = "5.4.0"
 utoipa-scalar = { version = "0.3", features = ["axum"] }
 tower-http = { version = "0.6.8", features = ["cors"] }

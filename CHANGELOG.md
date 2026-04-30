@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.21.0](https://github.com/xidl/idl-language-server/compare/v0.20.0...v0.21.0) (2026-04-30)
+
+
+### Features
+
+* bump anyhow from 1.0.93 to 1.0.102 ([#41](https://github.com/xidl/idl-language-server/issues/41)) ([4a63d97](https://github.com/xidl/idl-language-server/commit/4a63d970fcf6974783ff4246783a3e1351d41b8f))
+* bump axum from 0.8.8 to 0.8.9 ([#42](https://github.com/xidl/idl-language-server/issues/42)) ([d586c99](https://github.com/xidl/idl-language-server/commit/d586c99bb213d7db84362ee72517e5be1f3d41d3))
+* rename extension name ([486d65d](https://github.com/xidl/idl-language-server/commit/486d65d25122744a05974a3539ff96a45328e01a))
+
+
+### Bug Fixes
+
+* fix publish release ([e887b9c](https://github.com/xidl/idl-language-server/commit/e887b9c66eaad97fefd5f64af36c12eba9fea19f))
+
 ## [0.20.0](https://github.com/xidl/idl-language-server/compare/v0.19.0...v0.20.0) (2026-04-29)
 
 

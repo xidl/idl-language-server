@@ -1673,9 +1673,9 @@ checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
 
 [[package]]
 name = "xidl-jsonrpc"
-version = "0.53.0"
+version = "0.54.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f741f9caa2a84d82a3968168ad3a693a09806256c2d0629d53e2d5dd0dd44d60"
+checksum = "b81e1082cabd5a595eda20f43f050b56853d65d350fe931ce2ada2eda7797bc3"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -1690,9 +1690,9 @@ dependencies = [
 
 [[package]]
 name = "xidl-parser"
-version = "0.53.0"
+version = "0.54.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f2f8989c3520359b0d3b173ff0f654c9d50e5b2fb5319c54ee33884c77dcb42f"
+checksum = "efcb0936a208a9e5b4837d86c4ea9bc836400e7c9bb39a71ca0a74e3f3ec1f91"
 dependencies = [
  "convert_case",
  "include_dir",
@@ -1709,9 +1709,9 @@ dependencies = [
 
 [[package]]
 name = "xidl-parser-derive"
-version = "0.53.0"
+version = "0.54.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15270faf930bfe9a97a19490ccac076853819057a8bc91ad91614c91cd045823"
+checksum = "760bffd9eb51c8c60b113a751e042d9f4570930c8171b698864686cfa10380b5"
 dependencies = [
  "convert_case",
  "darling",
@@ -1723,9 +1723,9 @@ dependencies = [
 
 [[package]]
 name = "xidlc"
-version = "0.53.0"
+version = "0.54.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "544a6da8a5586f94e2055decec1eb6ea2ac708ca30cbb5f18ac9af4de98072ac"
+checksum = "84586d5e7cbea1d299ddd51fefdbdcd40d3ef885c0d2144c4ff4cf602a55b801"
 dependencies = [
  "async-trait",
  "convert_case",

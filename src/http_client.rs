@@ -254,7 +254,7 @@ async fn openapi_json_handler(state: Arc<PreviewState>) -> Response {
 async fn regenerate_openapi(text: &str, source_path: &Path, out_dir: &Path) -> anyhow::Result<()> {
     tokio::fs::write(source_path, text).await?;
     let status = tokio::process::Command::new("xidlc")
-        .arg("--lang")
+        .arg("gen")
         .arg("openapi")
         .arg("--out-dir")
         .arg(out_dir)

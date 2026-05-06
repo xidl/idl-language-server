@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.22.0](https://github.com/xidl/idl-language-server/compare/v0.21.0...v0.22.0) (2026-05-06)
+
+
+### Features
+
+* bump tokio from 1.52.1 to 1.52.2 ([#48](https://github.com/xidl/idl-language-server/issues/48)) ([00fd386](https://github.com/xidl/idl-language-server/commit/00fd386be9f8ab28f68f23665b7dd8fd077c7e06))
+* bump utoipa from 5.4.0 to 5.5.0 ([#49](https://github.com/xidl/idl-language-server/issues/49)) ([421ac16](https://github.com/xidl/idl-language-server/commit/421ac16b48c26592bd0971166b69ddb8c63fc97e))
+* bump xidl-parser from 0.50.2 to 0.53.0 ([#47](https://github.com/xidl/idl-language-server/issues/47)) ([0180a37](https://github.com/xidl/idl-language-server/commit/0180a374889f5a78868ee86e713715a26f0f49d1))
+* bump xidl-parser from 0.53.0 to 0.53.1 ([#50](https://github.com/xidl/idl-language-server/issues/50)) ([0983b10](https://github.com/xidl/idl-language-server/commit/0983b10e60356e5fd736bf7d0be72ef825e26fe5))
+* bump xidlc from 0.50.2 to 0.53.0 ([#46](https://github.com/xidl/idl-language-server/issues/46)) ([f36f478](https://github.com/xidl/idl-language-server/commit/f36f478552f82652adb9dcd38ba901f3299b7e1d))
+
 ## [0.21.0](https://github.com/xidl/idl-language-server/compare/v0.20.0...v0.21.0) (2026-04-30)
 
 

@@ -1,9 +1,98 @@
 use dashmap::DashMap;
 use ropey::Rope;
+use serde::{Deserialize, Serialize};
 use tower_lsp::Client;
 use tower_lsp::lsp_types::{ConfigurationItem, SemanticToken};
 
 use crate::http_client::PreviewHandle;
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+pub enum Plugin {
+    #[serde(alias = "hir")]
+    Hir,
+    #[serde(alias = "rest_hir", alias = "rest-hir")]
+    RestHir,
+    #[serde(alias = "typed_ast", alias = "typed-ast")]
+    TypedAst,
+    #[serde(alias = "rs", alias = "rust")]
+    Rust,
+    #[serde(
+        alias = "rust_jsonrpc",
+        alias = "rust-jsonrpc",
+        alias = "rs_jsonrpc",
+        alias = "rs-jsonrpc"
+    )]
+    RustJsonRpc,
+    #[serde(
+        alias = "axum",
+        alias = "rust_axum",
+        alias = "rust-axum",
+        alias = "rs_axum",
+        alias = "rs-axum"
+    )]
+    Axum,
+    #[serde(alias = "ts", alias = "typescript")]
+    Typescript,
+    #[serde(
+        alias = "ts_rest",
+        alias = "ts-rest",
+        alias = "typescript_rest",
+        alias = "typescript-rest"
+    )]
+    TypescriptRest,
+    #[serde(alias = "go", alias = "golang")]
+    Go,
+    #[serde(alias = "go_rest", alias = "go-rest")]
+    GoRest,
+    #[serde(alias = "py", alias = "python")]
+    Python,
+    #[serde(
+        alias = "py_rest",
+        alias = "py-rest",
+        alias = "python_rest",
+        alias = "python-rest"
+    )]
+    PythonRest,
+    #[serde(alias = "openapi")]
+    Openapi,
+    #[serde(alias = "openrpc", alias = "open-rpc")]
+    Openrpc,
+}
+
+impl Plugin {
+    pub fn to_xidlc_cmd(self) -> &'static str {
+        match self {
+            Plugin::Hir => "hir",
+            Plugin::RestHir => "rest-hir",
+            Plugin::TypedAst => "typed-ast",
+            Plugin::Rust => "rust",
+            Plugin::RustJsonRpc => "rust-jsonrpc",
+            Plugin::Axum => "rust-axum",
+            Plugin::Typescript => "typescript",
+            Plugin::TypescriptRest => "typescript-rest",
+            Plugin::Go => "go",
+            Plugin::GoRest => "go-rest",
+            Plugin::Python => "python",
+            Plugin::PythonRest => "python-rest",
+            Plugin::Openapi => "openapi",
+            Plugin::Openrpc => "openrpc",
+        }
+    }
+
+    pub fn to_language_id(self) -> &'static str {
+        match self {
+            Plugin::Hir
+            | Plugin::RestHir
+            | Plugin::TypedAst
+            | Plugin::Openapi
+            | Plugin::Openrpc => "json",
+            Plugin::Rust | Plugin::RustJsonRpc | Plugin::Axum => "rust",
+            Plugin::Typescript | Plugin::TypescriptRest => "typescript",
+            Plugin::Go | Plugin::GoRest => "go",
+            Plugin::Python | Plugin::PythonRest => "python",
+        }
+    }
+}
 
 #[derive(Debug, serde::Deserialize, Clone)]
 pub struct Settings {

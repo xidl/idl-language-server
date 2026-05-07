@@ -148,13 +148,17 @@ pub fn interface_name_positions(text: &str, rope: &Rope) -> Vec<Position> {
     positions
 }
 
-pub async fn start_preview(text: &str, command_template: String) -> anyhow::Result<PreviewHandle> {
+pub async fn start_preview(
+    text: &str,
+    command_template: String,
+    xidlc_path: String,
+) -> anyhow::Result<PreviewHandle> {
     let working_dir = create_working_dir()?;
     let source_path = working_dir.join("source.idl");
     let out_dir = working_dir.join("out");
     tokio::fs::create_dir_all(&out_dir).await?;
 
-    regenerate_openapi(text, &source_path, &out_dir, &command_template).await?;
+    regenerate_openapi(text, &source_path, &out_dir, &command_template, &xidlc_path).await?;
     let openapi_path = out_dir.join("openapi.json");
 
     let state = Arc::new(PreviewState { openapi_path });
@@ -185,6 +189,7 @@ pub async fn start_preview(text: &str, command_template: String) -> anyhow::Resu
         source_path,
         out_dir,
         command_template,
+        xidlc_path,
     ));
 
     Ok(PreviewHandle {
@@ -202,6 +207,7 @@ async fn run_regen_loop(
     source_path: PathBuf,
     out_dir: PathBuf,
     command_template: String,
+    xidlc_path: String,
 ) {
     while let Some(mut text) = regen_rx.recv().await {
         let delay = tokio::time::sleep(Duration::from_millis(300));
@@ -221,8 +227,14 @@ async fn run_regen_loop(
             }
         }
 
-        if let Err(err) =
-            regenerate_openapi(&text, &source_path, &out_dir, &command_template).await
+        if let Err(err) = regenerate_openapi(
+            &text,
+            &source_path,
+            &out_dir,
+            &command_template,
+            &xidlc_path,
+        )
+        .await
         {
             log::warn!("failed to regenerate openapi: {err}");
         }
@@ -264,10 +276,12 @@ async fn regenerate_openapi(
     source_path: &Path,
     out_dir: &Path,
     command_template: &str,
+    xidlc_path: &str,
 ) -> anyhow::Result<()> {
     tokio::fs::write(source_path, text).await?;
 
     let rendered = command_template
+        .replace("{xidlc_path}", xidlc_path)
         .replace("{out_dir}", &out_dir.to_string_lossy())
         .replace("{source_path}", &source_path.to_string_lossy());
 

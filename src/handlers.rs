@@ -216,8 +216,10 @@ pub(crate) async fn execute_command(
                 }
             };
             let text = rope.to_string();
-            let command_template = ctx.settings.read().await.regenerate_command.clone();
-            match http_client::start_preview(&text, command_template).await {
+            let settings = ctx.settings.read().await;
+            let command_template = settings.regenerate_command.clone();
+            let xidlc_path = settings.xidlc_path.clone();
+            match http_client::start_preview(&text, command_template, xidlc_path).await {
                 Ok(preview) => {
                     ctx.preview_map.insert(uri, preview);
                     refresh_code_lens(ctx).await;

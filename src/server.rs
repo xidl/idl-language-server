@@ -11,8 +11,8 @@ use crate::analysis::{
     goto_definition_locations, reference_locations, rename_workspace_edit,
 };
 use crate::constants::{
-    COMMAND_INSPECT_HIR, COMMAND_INSPECT_TYPEDAST, COMMAND_PREVIEW, LANGUAGE_ID,
-    semantic_token_modifiers, semantic_token_types,
+    COMMAND_INSPECT_HIR, COMMAND_INSPECT_TYPEDAST, LANGUAGE_ID, semantic_token_modifiers,
+    semantic_token_types,
 };
 use crate::context::AppContext;
 use crate::documents::{TextDocumentChange, format_text, on_change, semantic_tokens};
@@ -76,7 +76,6 @@ impl LanguageServer for Backend {
                     commands: vec![
                         COMMAND_INSPECT_HIR.to_string(),
                         COMMAND_INSPECT_TYPEDAST.to_string(),
-                        COMMAND_PREVIEW.to_string(),
                         http_client::CMD_START_HTTP_CLIENT.to_string(),
                         http_client::CMD_STOP_HTTP_CLIENT.to_string(),
                     ],

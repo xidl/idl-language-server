@@ -31,7 +31,6 @@ utoipa = "5.5.0"
 utoipa-scalar = { version = "0.3", features = ["axum"] }
 tower-http = { version = "0.6.9", features = ["cors"] }
 strsim = "0.11.1"
-tempfile = "3.27.0"
 
 [lints.clippy]
 collapsible_if = "allow"

@@ -103,7 +103,7 @@ pub(super) fn build_hover(text: &str, rope: &Rope, uri: &Url, position: Position
     })
 }
 
-pub fn build_inspect_value(text: &str, target: InspectTarget) -> serde_json::Value {
+pub(crate) fn build_inspect_value(text: &str, target: InspectTarget) -> serde_json::Value {
     match parser_text(text) {
         Ok(spec) => match target {
             InspectTarget::Hir => {

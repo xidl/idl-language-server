@@ -4,11 +4,11 @@ use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
 
 use crate::constants::{
-    COMMAND_INSPECT_HIR, COMMAND_INSPECT_TYPEDAST, COMMAND_PREVIEW, COMMAND_VSCODE_OPEN,
-    MSG_DOCUMENT_NOT_AVAILABLE, MSG_MISSING_DOCUMENT_URI, TITLE_OPEN_HTTP_PREVIEW,
-    TITLE_START_HTTP_PREVIEW, TITLE_STOP_HTTP_CLIENT, TITLE_STOP_HTTP_PREVIEW,
+    COMMAND_INSPECT_HIR, COMMAND_INSPECT_TYPEDAST, COMMAND_VSCODE_OPEN, MSG_DOCUMENT_NOT_AVAILABLE,
+    MSG_MISSING_DOCUMENT_URI, TITLE_OPEN_HTTP_PREVIEW, TITLE_START_HTTP_PREVIEW,
+    TITLE_STOP_HTTP_CLIENT, TITLE_STOP_HTTP_PREVIEW,
 };
-use crate::context::{AppContext, Plugin};
+use crate::context::AppContext;
 use crate::doc::{self, InspectTarget};
 use crate::http_client;
 
@@ -202,132 +202,6 @@ pub(crate) async fn execute_command(
             };
             return Ok(Some(doc::build_inspect_value(&text, target)));
         }
-        COMMAND_PREVIEW => {
-            let plugin_value = args.pop();
-            let plugin = match plugin_value.and_then(|v| serde_json::from_value::<Plugin>(v).ok()) {
-                Some(p) => p,
-                None => {
-                    ctx.client
-                        .show_message(MessageType::ERROR, "Invalid or missing plugin")
-                        .await;
-                    return Ok(None);
-                }
-            };
-
-            let rope = match ctx.document_map.get(&uri) {
-                Some(rope) => rope,
-                None => {
-                    ctx.client
-                        .show_message(MessageType::ERROR, MSG_DOCUMENT_NOT_AVAILABLE)
-                        .await;
-                    return Ok(None);
-                }
-            };
-
-            if plugin == Plugin::Hir || plugin == Plugin::TypedAst {
-                let target = if plugin == Plugin::Hir {
-                    InspectTarget::Hir
-                } else {
-                    InspectTarget::TypedAst
-                };
-                let content = doc::build_inspect_value(&rope.to_string(), target);
-                return Ok(Some(serde_json::json!({
-                    "content": serde_json::to_string_pretty(&content).unwrap_or_default(),
-                    "language": "json"
-                })));
-            }
-
-            let settings = ctx.settings.read().await;
-            let xidlc_path = settings.xidlc_path.clone();
-
-            let temp_dir = match tempfile::tempdir() {
-                Ok(d) => d,
-                Err(e) => {
-                    ctx.client
-                        .show_message(
-                            MessageType::ERROR,
-                            format!("Failed to create temp dir: {e}"),
-                        )
-                        .await;
-                    return Ok(None);
-                }
-            };
-
-            let source_path = temp_dir.path().join("source.idl");
-            if let Err(e) = tokio::fs::write(&source_path, rope.to_string()).await {
-                ctx.client
-                    .show_message(
-                        MessageType::ERROR,
-                        format!("Failed to write source file: {e}"),
-                    )
-                    .await;
-                return Ok(None);
-            }
-
-            let out_dir = temp_dir.path().join("out");
-            if let Err(e) = tokio::fs::create_dir_all(&out_dir).await {
-                ctx.client
-                    .show_message(MessageType::ERROR, format!("Failed to create out dir: {e}"))
-                    .await;
-                return Ok(None);
-            }
-
-            let status = match tokio::process::Command::new(&xidlc_path)
-                .arg("gen")
-                .arg("--out-dir")
-                .arg(&out_dir)
-                .arg(plugin.to_xidlc_cmd())
-                .arg(&source_path)
-                .status()
-                .await
-            {
-                Ok(s) => s,
-                Err(e) => {
-                    ctx.client
-                        .show_message(MessageType::ERROR, format!("Failed to run xidlc: {e}"))
-                        .await;
-                    return Ok(None);
-                }
-            };
-
-            if !status.success() {
-                ctx.client
-                    .show_message(MessageType::ERROR, "xidlc generation failed")
-                    .await;
-                return Ok(None);
-            }
-
-            // Find generated file
-            let mut entries = match tokio::fs::read_dir(&out_dir).await {
-                Ok(e) => e,
-                Err(e) => {
-                    ctx.client
-                        .show_message(MessageType::ERROR, format!("Failed to read out dir: {e}"))
-                        .await;
-                    return Ok(None);
-                }
-            };
-
-            let mut generated_content = String::new();
-            while let Ok(Some(entry)) = entries.next_entry().await {
-                let path = entry.path();
-                if path.is_file() {
-                    // Skip the original idl if xidlc copied it (like for hir/typed-ast in some versions)
-                    if path.extension().and_then(|s| s.to_str()) == Some("idl") {
-                        continue;
-                    }
-                    if let Ok(content) = tokio::fs::read_to_string(path).await {
-                        generated_content = content;
-                        break;
-                    }
-                }
-            }
-
-            return Ok(Some(serde_json::json!({
-                "content": generated_content,
-                "language": plugin.to_language_id()
-            })));
-        }
         http_client::CMD_START_HTTP_CLIENT => {
             if ctx.preview_map.contains_key(&uri) {
                 return Ok(None);
@@ -375,33 +249,18 @@ pub(crate) async fn execute_command(
 pub(crate) fn code_lens(ctx: &AppContext, uri: &Url) -> Option<Vec<CodeLens>> {
     let rope = ctx.document_map.get(uri.as_str())?;
     let text = rope.to_string();
-
-    let mut lenses: Vec<CodeLens> = Vec::new();
-
-    // Add Preview Code Lens at the top
-    lenses.push(CodeLens {
-        range: Range {
-            start: Position::new(0, 0),
-            end: Position::new(0, 0),
-        },
-        command: Some(Command {
-            title: "$(eye) Preview generated code...".to_string(),
-            command: COMMAND_PREVIEW.to_string(),
-            arguments: Some(vec![serde_json::Value::String(uri.to_string())]),
-        }),
-        data: None,
-    });
-
     if !http_client::document_is_http_relevant(&text) {
-        return Some(lenses);
+        return None;
     }
 
     let positions = http_client::interface_name_positions(&text, &rope);
     if positions.is_empty() {
-        return Some(lenses);
+        return None;
     }
 
     let is_running = ctx.preview_map.contains_key(uri.as_str());
+    let mut lenses: Vec<CodeLens> = Vec::new();
+
     if is_running {
         if let Some(preview) = ctx.preview_map.get(uri.as_str()) {
             for position in positions {

@@ -255,9 +255,9 @@ async fn regenerate_openapi(text: &str, source_path: &Path, out_dir: &Path) -> a
     tokio::fs::write(source_path, text).await?;
     let status = tokio::process::Command::new("xidlc")
         .arg("gen")
-        .arg("openapi")
         .arg("--out-dir")
         .arg(out_dir)
+        .arg("openapi")
         .arg(source_path)
         .status()
         .await?;

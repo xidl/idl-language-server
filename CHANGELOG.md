@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.23.1](https://github.com/xidl/idl-language-server/compare/v0.23.0...v0.23.1) (2026-05-07)
+
+
+### Bug Fixes
+
+* revert "feat: add preview generated code feature" ([7bf45c4](https://github.com/xidl/idl-language-server/commit/7bf45c432ec6abf35a36ab5d8bccc2d6938cff4c))
+
 ## [0.23.0](https://github.com/xidl/idl-language-server/compare/v0.22.0...v0.23.0) (2026-05-07)
 
 

@@ -201,7 +201,6 @@ pub const MSG_DOCUMENT_NOT_AVAILABLE: &str = "Document not available";
 pub const COMMAND_VSCODE_OPEN: &str = "vscode.open";
 pub const COMMAND_INSPECT_HIR: &str = "idl-language-server.inspect-hir";
 pub const COMMAND_INSPECT_TYPEDAST: &str = "idl-language-server.inspect-typedast";
-pub const COMMAND_PREVIEW: &str = "idl-language-server.preview";
 
 pub fn semantic_token_types() -> Vec<SemanticTokenType> {
     SEMANTIC_TOKEN_TYPES

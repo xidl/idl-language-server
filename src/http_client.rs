@@ -148,13 +148,13 @@ pub fn interface_name_positions(text: &str, rope: &Rope) -> Vec<Position> {
     positions
 }
 
-pub async fn start_preview(text: &str) -> anyhow::Result<PreviewHandle> {
+pub async fn start_preview(text: &str, command_template: String) -> anyhow::Result<PreviewHandle> {
     let working_dir = create_working_dir()?;
     let source_path = working_dir.join("source.idl");
     let out_dir = working_dir.join("out");
     tokio::fs::create_dir_all(&out_dir).await?;
 
-    regenerate_openapi(text, &source_path, &out_dir).await?;
+    regenerate_openapi(text, &source_path, &out_dir, &command_template).await?;
     let openapi_path = out_dir.join("openapi.json");
 
     let state = Arc::new(PreviewState { openapi_path });
@@ -180,7 +180,12 @@ pub async fn start_preview(text: &str) -> anyhow::Result<PreviewHandle> {
     });
 
     let (regen_tx, regen_rx) = mpsc::channel(8);
-    let regen_task = tokio::spawn(run_regen_loop(regen_rx, source_path, out_dir));
+    let regen_task = tokio::spawn(run_regen_loop(
+        regen_rx,
+        source_path,
+        out_dir,
+        command_template,
+    ));
 
     Ok(PreviewHandle {
         scalar_url,
@@ -196,6 +201,7 @@ async fn run_regen_loop(
     mut regen_rx: mpsc::Receiver<String>,
     source_path: PathBuf,
     out_dir: PathBuf,
+    command_template: String,
 ) {
     while let Some(mut text) = regen_rx.recv().await {
         let delay = tokio::time::sleep(Duration::from_millis(300));
@@ -215,7 +221,9 @@ async fn run_regen_loop(
             }
         }
 
-        if let Err(err) = regenerate_openapi(&text, &source_path, &out_dir).await {
+        if let Err(err) =
+            regenerate_openapi(&text, &source_path, &out_dir, &command_template).await
+        {
             log::warn!("failed to regenerate openapi: {err}");
         }
     }
@@ -251,18 +259,30 @@ async fn openapi_json_handler(state: Arc<PreviewState>) -> Response {
     }
 }
 
-async fn regenerate_openapi(text: &str, source_path: &Path, out_dir: &Path) -> anyhow::Result<()> {
+async fn regenerate_openapi(
+    text: &str,
+    source_path: &Path,
+    out_dir: &Path,
+    command_template: &str,
+) -> anyhow::Result<()> {
     tokio::fs::write(source_path, text).await?;
-    let status = tokio::process::Command::new("xidlc")
-        .arg("gen")
-        .arg("--out-dir")
-        .arg(out_dir)
-        .arg("openapi")
-        .arg(source_path)
+
+    let rendered = command_template
+        .replace("{out_dir}", &out_dir.to_string_lossy())
+        .replace("{source_path}", &source_path.to_string_lossy());
+
+    let mut parts = rendered.split_whitespace();
+    let program = parts
+        .next()
+        .ok_or_else(|| anyhow::anyhow!("empty command"))?;
+
+    let status = tokio::process::Command::new(program)
+        .args(parts)
         .status()
         .await?;
+
     if !status.success() {
-        anyhow::bail!("xidlc openapi generation failed");
+        anyhow::bail!("openapi generation failed: {rendered}");
     }
     Ok(())
 }

@@ -113,6 +113,7 @@ impl LanguageServer for Backend {
     }
 
     async fn initialized(&self, _: InitializedParams) {
+        self.ctx.fetch_settings().await;
         debug!("initialized!");
     }
 
@@ -288,6 +289,7 @@ impl LanguageServer for Backend {
     }
 
     async fn did_change_configuration(&self, _: DidChangeConfigurationParams) {
+        self.ctx.fetch_settings().await;
         debug!("configuration changed!");
     }
 }

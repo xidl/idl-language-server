@@ -216,7 +216,8 @@ pub(crate) async fn execute_command(
                 }
             };
             let text = rope.to_string();
-            match http_client::start_preview(&text).await {
+            let command_template = ctx.settings.read().await.regenerate_command.clone();
+            match http_client::start_preview(&text, command_template).await {
                 Ok(preview) => {
                     ctx.preview_map.insert(uri, preview);
                     refresh_code_lens(ctx).await;

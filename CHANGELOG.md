@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.23.0](https://github.com/xidl/idl-language-server/compare/v0.22.0...v0.23.0) (2026-05-07)
+
+
+### Features
+
+* add preview generated code feature ([f2783d6](https://github.com/xidl/idl-language-server/commit/f2783d65f1827c5d106c9e714b343a8b1ede729d))
+* bump tower-http from 0.6.8 to 0.6.9 ([#52](https://github.com/xidl/idl-language-server/issues/52)) ([8935d6a](https://github.com/xidl/idl-language-server/commit/8935d6a0cb775cce9036237f401567ccbb7cbf92))
+* **http_client:** make openapi regeneration command configurable ([1a81576](https://github.com/xidl/idl-language-server/commit/1a815761ec3f223a931c761413892d23a72e1116))
+* make xidlc path configurable ([ca6f9e0](https://github.com/xidl/idl-language-server/commit/ca6f9e010090a1621d680c842c02f8084ba16e2d))
+
+
+### Bug Fixes
+
+* **openapi:** fix openapi generate ([cda5d5b](https://github.com/xidl/idl-language-server/commit/cda5d5bf971c2d7f34217e32b57cee818aebb688))
+
 ## [0.22.0](https://github.com/xidl/idl-language-server/compare/v0.21.0...v0.22.0) (2026-05-06)
 
 

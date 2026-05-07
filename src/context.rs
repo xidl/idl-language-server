@@ -7,6 +7,8 @@ use crate::http_client::PreviewHandle;
 
 #[derive(Debug, serde::Deserialize, Clone)]
 pub struct Settings {
+    #[serde(rename = "xidlcPath")]
+    pub xidlc_path: String,
     #[serde(rename = "httpClient.regenerateCommand")]
     pub regenerate_command: String,
 }
@@ -14,7 +16,9 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
-            regenerate_command: "xidlc gen --out-dir {out_dir} openapi {source_path}".to_string(),
+            xidlc_path: "xidlc".to_string(),
+            regenerate_command: "{xidlc_path} gen --out-dir {out_dir} openapi {source_path}"
+                .to_string(),
         }
     }
 }

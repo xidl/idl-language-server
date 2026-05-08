@@ -1,4 +1,4 @@
-use log::warn;
+use log::{debug, warn};
 use ropey::Rope;
 use tower_lsp::lsp_types::*;
 
@@ -16,6 +16,7 @@ pub(crate) fn format_text(
 ) -> Option<Vec<TextEdit>> {
     let uri = params.text_document.uri.to_string();
     let rope = ctx.document_map.get(&uri)?;
+    debug!("formatting document: {}", uri);
     let formatted_text = match xidlc::fmt::format_idl_source(&rope.to_string()) {
         Ok(text) => text,
         Err(err) => {
@@ -37,6 +38,7 @@ pub(crate) fn format_text(
 
 pub(crate) async fn on_change(ctx: &AppContext, item: TextDocumentChange<'_>) {
     let uri = item.uri.to_string();
+    debug!("updating document content for: {}", uri);
     let rope = Rope::from_str(item.text);
     ctx.document_map.insert(uri.clone(), rope);
     refresh_semantic_tokens(ctx, &uri, item.text);
@@ -45,6 +47,7 @@ pub(crate) async fn on_change(ctx: &AppContext, item: TextDocumentChange<'_>) {
         .publish_diagnostics(item.uri, diagnostics, None)
         .await;
     if let Some(preview) = ctx.preview_map.get(&uri) {
+        debug!("requesting preview regeneration for: {}", uri);
         preview.request_regen(item.text);
     }
 }

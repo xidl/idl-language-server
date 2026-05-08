@@ -1,4 +1,4 @@
-use log::{debug, warn};
+use log::{debug, error, info, warn};
 use ropey::Rope;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
@@ -219,12 +219,14 @@ pub(crate) async fn execute_command(
             let settings = ctx.settings.read().await;
             let command_template = settings.regenerate_command.clone();
             let xidlc_path = settings.xidlc_path.clone();
+            info!("starting http preview for {}", uri);
             match http_client::start_preview(&text, command_template, xidlc_path).await {
                 Ok(preview) => {
                     ctx.preview_map.insert(uri, preview);
                     refresh_code_lens(ctx).await;
                 }
                 Err(err) => {
+                    error!("failed to start http preview for {}: {:?}", uri, err);
                     ctx.client
                         .show_message(
                             MessageType::ERROR,
@@ -236,6 +238,7 @@ pub(crate) async fn execute_command(
         }
         http_client::CMD_STOP_HTTP_CLIENT => {
             if let Some((_, preview)) = ctx.preview_map.remove(&uri) {
+                info!("stopping http preview for {}", uri);
                 preview.stop();
                 refresh_code_lens(ctx).await;
             }

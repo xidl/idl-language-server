@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use log::debug;
+use log::{debug, info};
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::request::{GotoDeclarationParams, GotoDeclarationResponse};
 use tower_lsp::lsp_types::*;
@@ -35,6 +35,7 @@ impl Backend {
 #[tower_lsp::async_trait]
 impl LanguageServer for Backend {
     async fn initialize(&self, _: InitializeParams) -> Result<InitializeResult> {
+        info!("initializing idl-language-server");
         Ok(InitializeResult {
             server_info: Some(ServerInfo {
                 name: env!("CARGO_PKG_NAME").to_string(),
@@ -114,14 +115,17 @@ impl LanguageServer for Backend {
 
     async fn initialized(&self, _: InitializedParams) {
         self.ctx.fetch_settings().await;
-        debug!("initialized!");
+        info!("idl-language-server initialized!");
     }
 
     async fn shutdown(&self) -> Result<()> {
+        info!("shutting down idl-language-server");
         Ok(())
     }
 
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
+        let uri = params.text_document.uri.to_string();
+        debug!("file opened: {}", uri);
         on_change(
             &self.ctx,
             TextDocumentChange {
@@ -130,10 +134,11 @@ impl LanguageServer for Backend {
             },
         )
         .await;
-        debug!("file opened!");
     }
 
     async fn did_change(&self, params: DidChangeTextDocumentParams) {
+        let uri = params.text_document.uri.to_string();
+        debug!("file changed: {}", uri);
         on_change(
             &self.ctx,
             TextDocumentChange {
@@ -146,6 +151,7 @@ impl LanguageServer for Backend {
 
     async fn did_close(&self, params: DidCloseTextDocumentParams) {
         let uri = params.text_document.uri.to_string();
+        debug!("file closed: {}", uri);
         if let Some((_, preview)) = self.ctx.preview_map.remove(&uri) {
             preview.stop();
         }
@@ -156,6 +162,7 @@ impl LanguageServer for Backend {
         params: SemanticTokensParams,
     ) -> Result<Option<SemanticTokensResult>> {
         let uri = params.text_document.uri.to_string();
+        debug!("semantic tokens full request for {}", uri);
         let semantic_tokens = semantic_tokens(&self.ctx, &uri);
         if let Some(tokens) = semantic_tokens {
             return Ok(Some(SemanticTokensResult::Tokens(SemanticTokens {
@@ -167,6 +174,8 @@ impl LanguageServer for Backend {
     }
 
     async fn formatting(&self, params: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
+        let uri = params.text_document.uri.to_string();
+        debug!("formatting request for {}", uri);
         Ok(format_text(&self.ctx, params))
     }
 
@@ -175,6 +184,7 @@ impl LanguageServer for Backend {
         params: DocumentSymbolParams,
     ) -> Result<Option<DocumentSymbolResponse>> {
         let uri = params.text_document.uri.to_string();
+        debug!("document symbol request for {}", uri);
         let rope = match self.ctx.document_map.get(&uri) {
             Some(rope) => rope,
             None => return Ok(None),
@@ -186,6 +196,7 @@ impl LanguageServer for Backend {
 
     async fn folding_range(&self, params: FoldingRangeParams) -> Result<Option<Vec<FoldingRange>>> {
         let uri = params.text_document.uri.to_string();
+        debug!("folding range request for {}", uri);
         let rope = match self.ctx.document_map.get(&uri) {
             Some(rope) => rope,
             None => return Ok(None),
@@ -201,6 +212,7 @@ impl LanguageServer for Backend {
     ) -> Result<Option<GotoDefinitionResponse>> {
         let uri = params.text_document_position_params.text_document.uri;
         let position = params.text_document_position_params.position;
+        debug!("goto definition request for {} at {:?}", uri, position);
         let rope = match self.ctx.document_map.get(uri.as_str()) {
             Some(rope) => rope,
             None => return Ok(None),
@@ -221,6 +233,7 @@ impl LanguageServer for Backend {
     ) -> Result<Option<GotoDeclarationResponse>> {
         let uri = params.text_document_position_params.text_document.uri;
         let position = params.text_document_position_params.position;
+        debug!("goto declaration request for {} at {:?}", uri, position);
         let rope = match self.ctx.document_map.get(uri.as_str()) {
             Some(rope) => rope,
             None => return Ok(None),
@@ -238,6 +251,7 @@ impl LanguageServer for Backend {
     async fn references(&self, params: ReferenceParams) -> Result<Option<Vec<Location>>> {
         let uri = params.text_document_position.text_document.uri;
         let position = params.text_document_position.position;
+        debug!("references request for {} at {:?}", uri, position);
         let rope = match self.ctx.document_map.get(uri.as_str()) {
             Some(rope) => rope,
             None => return Ok(None),
@@ -256,6 +270,10 @@ impl LanguageServer for Backend {
         let uri = params.text_document_position.text_document.uri;
         let position = params.text_document_position.position;
         let new_name = params.new_name;
+        debug!(
+            "rename request for {} at {:?} to {}",
+            uri, position, new_name
+        );
         let rope = match self.ctx.document_map.get(uri.as_str()) {
             Some(rope) => rope,
             None => return Ok(None),
@@ -268,11 +286,13 @@ impl LanguageServer for Backend {
     async fn hover(&self, params: HoverParams) -> Result<Option<Hover>> {
         let uri = params.text_document_position_params.text_document.uri;
         let position = params.text_document_position_params.position;
+        debug!("hover request for {} at {:?}", uri, position);
         Ok(hover(&self.ctx, &uri, position))
     }
 
     async fn code_action(&self, params: CodeActionParams) -> Result<Option<CodeActionResponse>> {
         let uri = params.text_document.uri.clone();
+        debug!("code action request for {} at {:?}", uri, params.range);
         Ok(code_action(&self.ctx, &uri, &params))
     }
 
@@ -280,22 +300,25 @@ impl LanguageServer for Backend {
         &self,
         params: ExecuteCommandParams,
     ) -> Result<Option<serde_json::Value>> {
+        debug!("execute command request: {}", params.command);
         execute_command(&self.ctx, params).await
     }
 
     async fn code_lens(&self, params: CodeLensParams) -> Result<Option<Vec<CodeLens>>> {
         let uri = params.text_document.uri;
+        debug!("code lens request for {}", uri);
         Ok(code_lens(&self.ctx, &uri))
     }
 
     async fn did_change_configuration(&self, _: DidChangeConfigurationParams) {
+        info!("configuration changed, fetching new settings");
         self.ctx.fetch_settings().await;
-        debug!("configuration changed!");
     }
 }
 
 pub(crate) async fn run() {
     env_logger::init();
+    info!("starting idl-language-server process");
 
     let stdin = tokio::io::stdin();
     let stdout = tokio::io::stdout();

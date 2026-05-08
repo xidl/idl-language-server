@@ -2,12 +2,14 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use anyhow::Context;
 use axum::{
     Router,
     http::{StatusCode, header},
     response::{IntoResponse, Response},
     routing::get,
 };
+use log::{debug, error, info, warn};
 use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
 use tokio::time::Instant;
@@ -43,6 +45,7 @@ impl PreviewHandle {
     }
 
     pub fn stop(self) {
+        info!("stopping http client preview server");
         let _ = self.shutdown_tx.send(());
     }
 }
@@ -153,18 +156,24 @@ pub async fn start_preview(
     command_template: String,
     xidlc_path: String,
 ) -> anyhow::Result<PreviewHandle> {
-    let working_dir = create_working_dir()?;
+    info!("starting http client preview");
+    let working_dir = create_working_dir().context("failed to create working directory")?;
     let source_path = working_dir.join("source.idl");
     let out_dir = working_dir.join("out");
-    tokio::fs::create_dir_all(&out_dir).await?;
+    tokio::fs::create_dir_all(&out_dir)
+        .await
+        .context("failed to create output directory")?;
 
     regenerate_openapi(text, &source_path, &out_dir, &command_template, &xidlc_path).await?;
     let openapi_path = out_dir.join("openapi.json");
 
     let state = Arc::new(PreviewState { openapi_path });
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await?;
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+        .await
+        .context("failed to bind TCP listener for preview server")?;
     let addr = listener.local_addr()?;
     let scalar_url = format!("http://{addr}/scalar");
+    info!("preview server listening on {}", addr);
 
     let app = build_router(state.clone());
 
@@ -176,11 +185,17 @@ pub async fn start_preview(
             .allow_methods(Any)
             .allow_headers(Any);
 
-        let _ = axum::serve(listener, app.layer(cors))
+        debug!("starting axum server task");
+        let res = axum::serve(listener, app.layer(cors))
             .with_graceful_shutdown(async move {
                 let _ = shutdown_rx.await;
+                debug!("received shutdown signal for preview server");
             })
             .await;
+
+        if let Err(err) = res {
+            error!("preview server error: {err}");
+        }
     });
 
     let (regen_tx, regen_rx) = mpsc::channel(8);
@@ -209,6 +224,7 @@ async fn run_regen_loop(
     command_template: String,
     xidlc_path: String,
 ) {
+    debug!("starting regeneration loop");
     while let Some(mut text) = regen_rx.recv().await {
         let delay = tokio::time::sleep(Duration::from_millis(300));
         tokio::pin!(delay);
@@ -227,6 +243,7 @@ async fn run_regen_loop(
             }
         }
 
+        debug!("triggering openapi regeneration");
         if let Err(err) = regenerate_openapi(
             &text,
             &source_path,
@@ -236,9 +253,10 @@ async fn run_regen_loop(
         )
         .await
         {
-            log::warn!("failed to regenerate openapi: {err}");
+            warn!("failed to regenerate openapi: {err:?}");
         }
     }
+    debug!("regeneration loop terminated");
 }
 
 fn build_router(state: Arc<PreviewState>) -> Router {
@@ -257,6 +275,7 @@ fn build_router(state: Arc<PreviewState>) -> Router {
 }
 
 async fn openapi_json_handler(state: Arc<PreviewState>) -> Response {
+    debug!("handling request for openapi.json");
     match tokio::fs::read_to_string(&state.openapi_path).await {
         Ok(body) => (
             StatusCode::OK,
@@ -265,7 +284,7 @@ async fn openapi_json_handler(state: Arc<PreviewState>) -> Response {
         )
             .into_response(),
         Err(err) => {
-            log::warn!("failed to read openapi.json: {err}");
+            warn!("failed to read openapi.json: {err}");
             StatusCode::INTERNAL_SERVER_ERROR.into_response()
         }
     }
@@ -278,7 +297,9 @@ async fn regenerate_openapi(
     command_template: &str,
     xidlc_path: &str,
 ) -> anyhow::Result<()> {
-    tokio::fs::write(source_path, text).await?;
+    tokio::fs::write(source_path, text)
+        .await
+        .with_context(|| format!("failed to write IDL source to {:?}", source_path))?;
 
     let rendered = command_template
         .replace("{xidlc_path}", xidlc_path)
@@ -290,29 +311,38 @@ async fn regenerate_openapi(
         .next()
         .ok_or_else(|| anyhow::anyhow!("empty command"))?;
 
+    debug!("executing command: {}", rendered);
     let status = tokio::process::Command::new(program)
         .args(parts)
         .status()
-        .await?;
+        .await
+        .with_context(|| {
+            format!(
+                "Failed to execute command: '{}'. Is '{}' installed and in your PATH? (xidlc path: {})",
+                rendered, program, xidlc_path
+            )
+        })?;
 
     if !status.success() {
-        anyhow::bail!("openapi generation failed: {rendered}");
+        anyhow::bail!("openapi generation failed with status {}: {}", status, rendered);
     }
+    debug!("openapi regeneration successful");
     Ok(())
 }
 
 async fn scalar_ui_handler(state: Arc<PreviewState>) -> Response {
+    debug!("handling request for scalar UI");
     let content = match tokio::fs::read_to_string(&state.openapi_path).await {
         Ok(content) => content,
         Err(err) => {
-            log::warn!("failed to read openapi.json: {err}");
+            warn!("failed to read openapi.json: {err}");
             return StatusCode::INTERNAL_SERVER_ERROR.into_response();
         }
     };
     let openapi: serde_json::Value = match serde_json::from_str(&content) {
         Ok(openapi) => openapi,
         Err(err) => {
-            log::warn!("failed to parse openapi.json: {err}");
+            warn!("failed to parse openapi.json: {err}");
             return StatusCode::INTERNAL_SERVER_ERROR.into_response();
         }
     };

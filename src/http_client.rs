@@ -324,7 +324,11 @@ async fn regenerate_openapi(
         })?;
 
     if !status.success() {
-        anyhow::bail!("openapi generation failed with status {}: {}", status, rendered);
+        anyhow::bail!(
+            "openapi generation failed with status {}: {}",
+            status,
+            rendered
+        );
     }
     debug!("openapi regeneration successful");
     Ok(())

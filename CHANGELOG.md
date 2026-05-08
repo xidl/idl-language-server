@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.24.0](https://github.com/xidl/idl-language-server/compare/v0.23.1...v0.24.0) (2026-05-08)
+
+
+### Features
+
+* bump tower-http from 0.6.9 to 0.6.10 ([#59](https://github.com/xidl/idl-language-server/issues/59)) ([1900768](https://github.com/xidl/idl-language-server/commit/1900768835514191f0ef1fb75068b6bc81f9b863))
+* bump xidl-parser from 0.54.0 to 0.55.0 ([#60](https://github.com/xidl/idl-language-server/issues/60)) ([e4696e8](https://github.com/xidl/idl-language-server/commit/e4696e89fb9615a6900a5d1656e42688734fe714))
+* bump xidlc from 0.54.0 to 0.55.0 ([#58](https://github.com/xidl/idl-language-server/issues/58)) ([2339ed2](https://github.com/xidl/idl-language-server/commit/2339ed25f145e70e5091ebfaae0f327514bdbc45))
+* improve error handling with context and add logging for key steps ([5a1c1c4](https://github.com/xidl/idl-language-server/commit/5a1c1c4500dc252627b8369453bf843afcd55282))
+
+
+### Bug Fixes
+
+* **release:** fix git lfs ([79a8de7](https://github.com/xidl/idl-language-server/commit/79a8de735cedbc7b312ab356f4e3c6e23ab01a89))
+
 ## [0.23.1](https://github.com/xidl/idl-language-server/compare/v0.23.0...v0.23.1) (2026-05-07)
 
 

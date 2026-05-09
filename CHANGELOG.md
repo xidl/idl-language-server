@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.25.0](https://github.com/xidl/idl-language-server/compare/v0.24.0...v0.25.0) (2026-05-09)
+
+
+### Features
+
+* bump tokio from 1.52.2 to 1.52.3 ([#63](https://github.com/xidl/idl-language-server/issues/63)) ([8fb6efa](https://github.com/xidl/idl-language-server/commit/8fb6efa9813d3d2809a9ddd99b0f24d9def69e06))
+* bump xidl-parser from 0.55.0 to 0.56.0 ([#65](https://github.com/xidl/idl-language-server/issues/65)) ([44c6928](https://github.com/xidl/idl-language-server/commit/44c6928b86b11741b968895fd8c546e87269fa2f))
+* bump xidlc from 0.55.0 to 0.56.0 ([#64](https://github.com/xidl/idl-language-server/issues/64)) ([fd3610f](https://github.com/xidl/idl-language-server/commit/fd3610fac28cc499201be5412c01a0bd6c9e0222))
+
 ## [0.24.0](https://github.com/xidl/idl-language-server/compare/v0.23.1...v0.24.0) (2026-05-08)
 
 

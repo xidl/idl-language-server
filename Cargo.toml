@@ -18,7 +18,7 @@ anyhow = "1.0.102"
 thiserror = "2.0.3"
 tree-sitter = "0.25.0"
 tree-sitter-highlight = "0.25.0"
-tree-sitter-idl = "3.17.0"
+tree-sitter-idl = "3.18.0"
 xidlc = { version = "0.60.0", default-features = false, features = [
   "gen-rust",
   "gen-rust-axum",

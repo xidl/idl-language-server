@@ -607,7 +607,7 @@ dependencies = [
  "tree-sitter-idl",
  "utoipa",
  "utoipa-scalar",
- "xidl-parser",
+ "xidl-parser 0.64.0",
  "xidlc",
 ]
 
@@ -1672,9 +1672,9 @@ checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
 
 [[package]]
 name = "xidl-jsonrpc"
-version = "0.64.0"
+version = "0.67.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd66f408d8f90794316f6d5e4c797e86fdd349f5c6de3e2c275a02c45819e5e4"
+checksum = "a017a364a13e025f353967882a326ceb86bfec53f9674ab64130136ead17cf2f"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -1703,7 +1703,26 @@ dependencies = [
  "thiserror",
  "tree-sitter",
  "tree-sitter-idl",
- "xidl-parser-derive",
+ "xidl-parser-derive 0.64.0",
+]
+
+[[package]]
+name = "xidl-parser"
+version = "0.67.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d9c5503b4ca3f23638de9111f46e55543840fefeb7bcf7e69f92ab49b1d76624"
+dependencies = [
+ "convert_case",
+ "include_dir",
+ "jiff",
+ "md5",
+ "minijinja",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tree-sitter",
+ "tree-sitter-idl",
+ "xidl-parser-derive 0.67.0",
 ]
 
 [[package]]
@@ -1721,10 +1740,24 @@ dependencies = [
 ]
 
 [[package]]
-name = "xidlc"
-version = "0.64.0"
+name = "xidl-parser-derive"
+version = "0.67.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3bc55f439ea08ab17c1d8733350d7d9d943d85b0e2fefc139b5287d4c2bccdf"
+checksum = "abf99d0edd9074f127e5fda41b14ef077dcb1511882f15986d51151b5c68f53c"
+dependencies = [
+ "convert_case",
+ "darling",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.87",
+ "tree-sitter-idl",
+]
+
+[[package]]
+name = "xidlc"
+version = "0.67.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "425c44978933e234ac62c68882ab4db5363be7bca46def0fbef52a73ddbaf38c"
 dependencies = [
  "async-trait",
  "convert_case",
@@ -1746,7 +1779,7 @@ dependencies = [
  "tree-sitter",
  "tree-sitter-idl",
  "xidl-jsonrpc",
- "xidl-parser",
+ "xidl-parser 0.67.0",
 ]
 
 [[package]]

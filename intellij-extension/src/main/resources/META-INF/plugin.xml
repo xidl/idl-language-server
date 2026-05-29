@@ -1,0 +1,15 @@
+<idea-plugin>
+    <id>com.xidl.idl</id>
+    <name>IDL Language Server</name>
+    <vendor>cathaysia</vendor>
+    <description><![CDATA[
+      IDL language server support for IntelliJ.
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <fileType name="IDL File" implementationClass="com.xidl.idl.IdlFileType" fieldName="INSTANCE" language="IDL" extensions="idl" />
+        <platform.lsp.serverSupportProvider implementation="com.xidl.idl.lsp.IdlLspServerSupportProvider"/>
+    </extensions>
+</idea-plugin>

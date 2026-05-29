@@ -106,9 +106,38 @@ jobs:
             dist/*.tar.gz
             dist/*.vsix
 
+  build-intellij:
+    name: build-intellij
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: wrapper
+
+      - name: Build IntelliJ Plugin
+        working-directory: intellij-extension
+        run: ./gradlew buildPlugin
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: intellij-extension
+          path: intellij-extension/build/distributions/*.zip
+
   release:
     needs:
       - build-lsp
+      - build-intellij
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -141,6 +170,7 @@ jobs:
           files: |
             dist/*/*.tar.gz
             dist/*/*.vsix
+            intellij-extension/*.zip
           body_path: release/body.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

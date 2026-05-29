@@ -10,4 +10,3 @@ plugins {
 }
 
 rootProject.name = "intellij-extension"
-

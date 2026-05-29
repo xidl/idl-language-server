@@ -20,7 +20,13 @@
 					"path": "Cargo.lock",
 					"type": "toml",
 					"jsonpath": "$.package[?(@.name.value=='idl-language-server')].version"
-				}
+				},
+				{
+					"path": "vscode-extension/package.json",
+					"type": "json",
+					"jsonpath": "$.version"
+				},
+				"intellij-extension/gradle.properties"
 			]
 		}
 	}

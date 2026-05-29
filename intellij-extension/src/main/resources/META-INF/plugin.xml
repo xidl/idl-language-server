@@ -11,5 +11,9 @@
     <extensions defaultExtensionNs="com.intellij">
         <fileType name="IDL File" implementationClass="com.xidl.idl.IdlFileType" fieldName="INSTANCE" language="IDL" extensions="idl" />
         <platform.lsp.serverSupportProvider implementation="com.xidl.idl.lsp.IdlLspServerSupportProvider"/>
+
+        <!-- Cross-language navigation: IDL → Go/Python/Rust/Java implementations -->
+        <gotoDeclarationHandler implementation="com.xidl.idl.navigation.IdlGotoDeclarationHandler"/>
+        <codeInsight.lineMarkerProvider language="IDL" implementationClass="com.xidl.idl.navigation.IdlImplementationLineMarkerProvider"/>
     </extensions>
 </idea-plugin>

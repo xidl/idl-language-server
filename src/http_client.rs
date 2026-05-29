@@ -165,7 +165,7 @@ pub async fn start_preview(
         .context("failed to create output directory")?;
 
     regenerate_openapi(text, &source_path, &out_dir, &command_template, &xidlc_path).await?;
-    let openapi_path = out_dir.join("openapi.json");
+    let openapi_path = out_dir.join("openapi_source.json");
 
     let state = Arc::new(PreviewState { openapi_path });
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
@@ -275,7 +275,7 @@ fn build_router(state: Arc<PreviewState>) -> Router {
 }
 
 async fn openapi_json_handler(state: Arc<PreviewState>) -> Response {
-    debug!("handling request for openapi.json");
+    debug!("handling request for OpenAPI JSON");
     match tokio::fs::read_to_string(&state.openapi_path).await {
         Ok(body) => (
             StatusCode::OK,
@@ -284,7 +284,7 @@ async fn openapi_json_handler(state: Arc<PreviewState>) -> Response {
         )
             .into_response(),
         Err(err) => {
-            warn!("failed to read openapi.json: {err}");
+            warn!("failed to read OpenAPI file: {err}");
             StatusCode::INTERNAL_SERVER_ERROR.into_response()
         }
     }
@@ -339,14 +339,14 @@ async fn scalar_ui_handler(state: Arc<PreviewState>) -> Response {
     let content = match tokio::fs::read_to_string(&state.openapi_path).await {
         Ok(content) => content,
         Err(err) => {
-            warn!("failed to read openapi.json: {err}");
+            warn!("failed to read OpenAPI file: {err}");
             return StatusCode::INTERNAL_SERVER_ERROR.into_response();
         }
     };
     let openapi: serde_json::Value = match serde_json::from_str(&content) {
         Ok(openapi) => openapi,
         Err(err) => {
-            warn!("failed to parse openapi.json: {err}");
+            warn!("failed to parse OpenAPI JSON: {err}");
             return StatusCode::INTERNAL_SERVER_ERROR.into_response();
         }
     };

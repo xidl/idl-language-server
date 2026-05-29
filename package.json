@@ -104,7 +104,7 @@
 				"idl-language-server.httpClient.regenerateCommand": {
 					"type": "string",
 					"default": "{xidlc_path} gen --out-dir {out_dir} openapi {source_path}",
-					"description": "The command to regenerate openapi.json from IDL. Available placeholders: {xidlc_path}, {out_dir}, {source_path}."
+					"description": "The command to regenerate OpenAPI from IDL. Available placeholders: {xidlc_path}, {out_dir}, {source_path}."
 				}
 			}
 		},

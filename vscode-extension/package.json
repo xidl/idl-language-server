@@ -1,6 +1,6 @@
 {
 	"name": "vscode-idl-language-extension",
-	"version": "0.25.0",
+	"version": "0.26.0",
 	"description": "VS Code extension for the IDL language server",
 	"license": "Apache-2.0",
 	"dependencies": {

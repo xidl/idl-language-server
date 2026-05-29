@@ -5,23 +5,8 @@ use tower_lsp::lsp_types::{ConfigurationItem, SemanticToken};
 
 use crate::http_client::PreviewHandle;
 
-#[derive(Debug, serde::Deserialize, Clone)]
-pub struct Settings {
-    #[serde(rename = "xidlcPath")]
-    pub xidlc_path: String,
-    #[serde(rename = "httpClient.regenerateCommand")]
-    pub regenerate_command: String,
-}
-
-impl Default for Settings {
-    fn default() -> Self {
-        Self {
-            xidlc_path: "xidlc".to_string(),
-            regenerate_command: "{xidlc_path} gen --out-dir {out_dir} openapi {source_path}"
-                .to_string(),
-        }
-    }
-}
+#[derive(Debug, serde::Deserialize, Clone, Default)]
+pub struct Settings {}
 
 #[derive(Debug)]
 pub struct AppContext {

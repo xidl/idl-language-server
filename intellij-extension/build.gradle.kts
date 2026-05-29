@@ -28,7 +28,7 @@ dependencies {
     intellijPlatform {
         intellijIdeaUltimate(providers.gradleProperty("platformVersion"))
         // We need the LSP plugin bundled in Ultimate
-        // Actually, in modern platform versions, LSP is part of the platform/bundled, but we might not need to declare it as a bundled plugin if it's intrinsic. 
+        // Actually, in modern platform versions, LSP is part of the platform/bundled, but we might not need to declare it as a bundled plugin if it's intrinsic.
         // Let's try declaring it just in case, or we can just rely on the platform.
         // Wait, LSP is not a separate bundled plugin in 241, it's just in the platform. Let's omit `bundledPlugin("com.intellij.platform.lsp")` unless needed.
         instrumentationTools()

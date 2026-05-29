@@ -151,11 +151,7 @@ pub fn interface_name_positions(text: &str, rope: &Rope) -> Vec<Position> {
     positions
 }
 
-pub async fn start_preview(
-    text: &str,
-    command_template: String,
-    xidlc_path: String,
-) -> anyhow::Result<PreviewHandle> {
+pub async fn start_preview(text: &str) -> anyhow::Result<PreviewHandle> {
     info!("starting http client preview");
     let working_dir = create_working_dir().context("failed to create working directory")?;
     let source_path = working_dir.join("source.idl");
@@ -164,7 +160,7 @@ pub async fn start_preview(
         .await
         .context("failed to create output directory")?;
 
-    regenerate_openapi(text, &source_path, &out_dir, &command_template, &xidlc_path).await?;
+    regenerate_openapi(text, &source_path, &out_dir).await?;
     let openapi_path = out_dir.join("openapi_source.json");
 
     let state = Arc::new(PreviewState { openapi_path });
@@ -199,13 +195,7 @@ pub async fn start_preview(
     });
 
     let (regen_tx, regen_rx) = mpsc::channel(8);
-    let regen_task = tokio::spawn(run_regen_loop(
-        regen_rx,
-        source_path,
-        out_dir,
-        command_template,
-        xidlc_path,
-    ));
+    let regen_task = tokio::spawn(run_regen_loop(regen_rx, source_path, out_dir));
 
     Ok(PreviewHandle {
         scalar_url,
@@ -221,8 +211,6 @@ async fn run_regen_loop(
     mut regen_rx: mpsc::Receiver<String>,
     source_path: PathBuf,
     out_dir: PathBuf,
-    command_template: String,
-    xidlc_path: String,
 ) {
     debug!("starting regeneration loop");
     while let Some(mut text) = regen_rx.recv().await {
@@ -244,15 +232,7 @@ async fn run_regen_loop(
         }
 
         debug!("triggering openapi regeneration");
-        if let Err(err) = regenerate_openapi(
-            &text,
-            &source_path,
-            &out_dir,
-            &command_template,
-            &xidlc_path,
-        )
-        .await
-        {
+        if let Err(err) = regenerate_openapi(&text, &source_path, &out_dir).await {
             warn!("failed to regenerate openapi: {err:?}");
         }
     }
@@ -290,46 +270,26 @@ async fn openapi_json_handler(state: Arc<PreviewState>) -> Response {
     }
 }
 
-async fn regenerate_openapi(
-    text: &str,
-    source_path: &Path,
-    out_dir: &Path,
-    command_template: &str,
-    xidlc_path: &str,
-) -> anyhow::Result<()> {
+async fn regenerate_openapi(text: &str, source_path: &Path, out_dir: &Path) -> anyhow::Result<()> {
     tokio::fs::write(source_path, text)
         .await
         .with_context(|| format!("failed to write IDL source to {:?}", source_path))?;
 
-    let rendered = command_template
-        .replace("{xidlc_path}", xidlc_path)
-        .replace("{out_dir}", &out_dir.to_string_lossy())
-        .replace("{source_path}", &source_path.to_string_lossy());
+    debug!("generating OpenAPI document via xidlc library");
 
-    let mut parts = rendered.split_whitespace();
-    let program = parts
-        .next()
-        .ok_or_else(|| anyhow::anyhow!("empty command"))?;
-
-    debug!("executing command: {}", rendered);
-    let status = tokio::process::Command::new(program)
-        .args(parts)
-        .status()
+    let mut generator = xidlc::driver::Generator::new("openapi".into());
+    let files = generator
+        .generate_from_idl(text, source_path, std::collections::HashMap::new())
         .await
-        .with_context(|| {
-            format!(
-                "Failed to execute command: '{}'. Is '{}' installed and in your PATH? (xidlc path: {})",
-                rendered, program, xidlc_path
-            )
-        })?;
+        .map_err(|e| anyhow::anyhow!("OpenAPI generation failed: {e:?}"))?;
 
-    if !status.success() {
-        anyhow::bail!(
-            "openapi generation failed with status {}: {}",
-            status,
-            rendered
-        );
+    for file in files {
+        let dest = out_dir.join(file.path());
+        tokio::fs::write(&dest, file.content())
+            .await
+            .with_context(|| format!("failed to write generated file to {:?}", dest))?;
     }
+
     debug!("openapi regeneration successful");
     Ok(())
 }

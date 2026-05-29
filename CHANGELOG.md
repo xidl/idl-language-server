@@ -1,5 +1,42 @@
 # Changelog
 
+## [0.26.0](https://github.com/xidl/idl-language-server/compare/v0.25.0...v0.26.0) (2026-05-29)
+
+
+### Features
+
+* add IntelliJ IDEA plugin with LSP support ([cc92777](https://github.com/xidl/idl-language-server/commit/cc92777debc2e288b7a4af94e1834c0cede017c7))
+* bump dashmap from 6.1.0 to 6.2.1 ([#73](https://github.com/xidl/idl-language-server/issues/73)) ([c0ac2ff](https://github.com/xidl/idl-language-server/commit/c0ac2ff10df7fda16736b2451a82a1b88008118c))
+* bump log from 0.4.29 to 0.4.30 ([#86](https://github.com/xidl/idl-language-server/issues/86)) ([a310e47](https://github.com/xidl/idl-language-server/commit/a310e47e62bdc8e6176bb08cd56dd5985adf382c))
+* bump minijinja from 2.19.0 to 2.20.0 ([#77](https://github.com/xidl/idl-language-server/issues/77)) ([e41345b](https://github.com/xidl/idl-language-server/commit/e41345b42ca9508d54cacd4f04599d9e154695c3))
+* bump serde_json from 1.0.149 to 1.0.150 ([#83](https://github.com/xidl/idl-language-server/issues/83)) ([c27bdf7](https://github.com/xidl/idl-language-server/commit/c27bdf791b2748ae303e1731a87b0589986b2324))
+* bump tower-http from 0.6.10 to 0.6.11 ([#74](https://github.com/xidl/idl-language-server/issues/74)) ([55b6548](https://github.com/xidl/idl-language-server/commit/55b65488138d144fa5acab332b86a4983e498df9))
+* bump tree-sitter-idl from 3.17.0 to 3.18.0 ([#71](https://github.com/xidl/idl-language-server/issues/71)) ([f13e6b0](https://github.com/xidl/idl-language-server/commit/f13e6b037ebb43e7082ad9d49ce458efa7c632a7))
+* bump xidl-parser from 0.56.0 to 0.58.0 ([#67](https://github.com/xidl/idl-language-server/issues/67)) ([b6c58f6](https://github.com/xidl/idl-language-server/commit/b6c58f6361822c92c44693b2e2ae6ba86e89d681))
+* bump xidl-parser from 0.58.0 to 0.60.0 ([#70](https://github.com/xidl/idl-language-server/issues/70)) ([d6f449c](https://github.com/xidl/idl-language-server/commit/d6f449c17b8893c57321cf02c977ecf457d9323c))
+* bump xidl-parser from 0.60.0 to 0.62.0 ([#75](https://github.com/xidl/idl-language-server/issues/75)) ([2f7ee84](https://github.com/xidl/idl-language-server/commit/2f7ee845aa20766b8d350699f203a5e199eab1f8))
+* bump xidl-parser from 0.62.0 to 0.64.0 ([#78](https://github.com/xidl/idl-language-server/issues/78)) ([24ca3d9](https://github.com/xidl/idl-language-server/commit/24ca3d9c41b76531d353c68628e833656b02882d))
+* bump xidl-parser from 0.64.0 to 0.67.0 ([#80](https://github.com/xidl/idl-language-server/issues/80)) ([8d3b8fb](https://github.com/xidl/idl-language-server/commit/8d3b8fbe2a139a7ec8e501bf1b018e7a43e34281))
+* bump xidl-parser from 0.67.0 to 0.69.2 ([#82](https://github.com/xidl/idl-language-server/issues/82)) ([d9fe3c8](https://github.com/xidl/idl-language-server/commit/d9fe3c8127019b5ef50d96f3554b2f7dffb47c44))
+* bump xidl-parser from 0.69.2 to 0.71.1 ([#87](https://github.com/xidl/idl-language-server/issues/87)) ([38f7d10](https://github.com/xidl/idl-language-server/commit/38f7d10861ce635ff5fc589048db8e6e479b99fb))
+* bump xidl-parser from 0.71.1 to 0.72.0 ([#88](https://github.com/xidl/idl-language-server/issues/88)) ([42a642b](https://github.com/xidl/idl-language-server/commit/42a642b74500ce3aa69a853daab57e64ce9ec162))
+* bump xidl-parser from 0.72.0 to 0.72.2 ([#90](https://github.com/xidl/idl-language-server/issues/90)) ([70c91db](https://github.com/xidl/idl-language-server/commit/70c91db365e0e02d6398cfc24a5153619801545f))
+* bump xidlc from 0.56.0 to 0.58.0 ([#68](https://github.com/xidl/idl-language-server/issues/68)) ([d66e5b7](https://github.com/xidl/idl-language-server/commit/d66e5b7dde2b747dcef7920bb7c0563e271c12d6))
+* bump xidlc from 0.58.0 to 0.60.0 ([#69](https://github.com/xidl/idl-language-server/issues/69)) ([18e7a31](https://github.com/xidl/idl-language-server/commit/18e7a31b45ab31fcfe5aec60b72a2d6cbe7a9ce3))
+* bump xidlc from 0.60.0 to 0.62.0 ([#76](https://github.com/xidl/idl-language-server/issues/76)) ([97b909a](https://github.com/xidl/idl-language-server/commit/97b909a288cfd698b96b144a337cd2643a6f38bb))
+* bump xidlc from 0.62.0 to 0.64.0 ([#79](https://github.com/xidl/idl-language-server/issues/79)) ([db7bb67](https://github.com/xidl/idl-language-server/commit/db7bb6767289b2daabdce7911e65c9509d12d005))
+* bump xidlc from 0.64.0 to 0.67.0 ([#81](https://github.com/xidl/idl-language-server/issues/81)) ([7131114](https://github.com/xidl/idl-language-server/commit/71311144fd90ecc7784e1cf557066b95876b782f))
+* bump xidlc from 0.67.0 to 0.69.2 ([#84](https://github.com/xidl/idl-language-server/issues/84)) ([1ed46c6](https://github.com/xidl/idl-language-server/commit/1ed46c6e58aa8d7dcacad6b8b2e62ab3716b6bc6))
+* bump xidlc from 0.69.2 to 0.71.1 ([#85](https://github.com/xidl/idl-language-server/issues/85)) ([315fc81](https://github.com/xidl/idl-language-server/commit/315fc8124d92b343e7ae5e065f13c93287526c33))
+* bump xidlc from 0.71.1 to 0.72.0 ([#89](https://github.com/xidl/idl-language-server/issues/89)) ([95ef0f6](https://github.com/xidl/idl-language-server/commit/95ef0f61bb93c8dc2f6db0a214690bb9037a1c68))
+
+
+### Bug Fixes
+
+* bump intellij plugin compatibility to 262.* ([6ebab41](https://github.com/xidl/idl-language-server/commit/6ebab417f70e0f0f32488fdfecf8a02d6015fbfc))
+* strip trailing comment from plugin version ([70adb5d](https://github.com/xidl/idl-language-server/commit/70adb5d438d1cceb0e8ca4108641aa87c70c94b0))
+* update openapi filename handling for xidlc 0.72.0 ([dee4148](https://github.com/xidl/idl-language-server/commit/dee4148802aa61d3e5d8932e5e70dc0c735d2f05))
+
 ## [0.25.0](https://github.com/xidl/idl-language-server/compare/v0.24.0...v0.25.0) (2026-05-09)
 
 

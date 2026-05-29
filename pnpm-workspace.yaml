@@ -1,5 +1,5 @@
 packages:
-  - client
+  - vscode-extension
 onlyBuiltDependencies:
   - '@vscode/vsce-sign'
   - esbuild

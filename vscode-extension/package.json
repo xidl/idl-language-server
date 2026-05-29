@@ -1,7 +1,7 @@
 {
-	"name": "vscode-idl-language-client",
+	"name": "vscode-idl-language-extension",
 	"version": "0.0.1",
-	"description": "VS Code client for the IDL language server",
+	"description": "VS Code extension for the IDL language server",
 	"license": "Apache-2.0",
 	"dependencies": {
 		"vscode-languageclient": "9.0.1"

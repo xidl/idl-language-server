@@ -170,7 +170,7 @@ jobs:
           files: |
             dist/*/*.tar.gz
             dist/*/*.vsix
-            intellij-extension/*.zip
+            dist/*/*.zip
           body_path: release/body.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.28.0](https://github.com/xidl/idl-language-server/compare/v0.27.0...v0.28.0) (2026-06-01)
+
+
+### Features
+
+* **intellij:** add cross-language navigation from IDL to implementations ([14f8f72](https://github.com/xidl/idl-language-server/commit/14f8f7232adf9681bb3db7fc8216c4ce12656e78))
+
+
+### Bug Fixes
+
+* **ci:** publish intellij extension to github release ([60289b8](https://github.com/xidl/idl-language-server/commit/60289b85c68ffd1d3af9f96f3f09da8a8f2057b3))
+
 ## [0.27.0](https://github.com/xidl/idl-language-server/compare/v0.26.0...v0.27.0) (2026-06-01)
 
 

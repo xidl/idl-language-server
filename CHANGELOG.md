@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.27.0](https://github.com/xidl/idl-language-server/compare/v0.26.0...v0.27.0) (2026-06-01)
+
+
+### Features
+
+* bump xidlc from 0.72.0 to 0.72.2 ([#93](https://github.com/xidl/idl-language-server/issues/93)) ([b7ed143](https://github.com/xidl/idl-language-server/commit/b7ed143264f9d4ed4c37f573765b5210df4f2880))
+
+
+### Bug Fixes
+
+* enable gen-openapi feature for xidlc ([#96](https://github.com/xidl/idl-language-server/issues/96)) ([207eeaa](https://github.com/xidl/idl-language-server/commit/207eeaa961d68808ccd404e746767f451e4b619e))
+
 ## [0.26.0](https://github.com/xidl/idl-language-server/compare/v0.25.0...v0.26.0) (2026-05-29)
 
 

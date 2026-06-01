@@ -22,12 +22,14 @@ tree-sitter-idl = "3.18.0"
 xidlc = { version = "0.72.2", default-features = false, features = [
   "gen-rust",
   "gen-rust-axum",
+  "gen-openapi",
 ] }
 xidl-parser = "0.72.2"
 rust-embed = "8.4.0"
 minijinja = "2.20.0"
 axum = "0.8.9"
 utoipa = "5.5.0"
+
 utoipa-scalar = { version = "0.3", features = ["axum"] }
 tower-http = { version = "0.6.11", features = ["cors"] }
 strsim = "0.11.1"

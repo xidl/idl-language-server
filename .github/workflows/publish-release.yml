@@ -108,10 +108,33 @@ jobs:
 
   build-intellij:
     name: build-intellij
+    needs: [build-lsp]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: dist
+
+      - name: Organize binaries
+        run: |
+          mkdir -p intellij-extension/bin/linux
+          mkdir -p intellij-extension/bin/windows
+          mkdir -p intellij-extension/bin/mac
+
+          # Linux
+          tar -xzf dist/idl-language-server-x86_64-unknown-linux-musl/idl-language-server-x86_64-unknown-linux-musl.tar.gz -C intellij-extension/bin/linux
+          chmod +x intellij-extension/bin/linux/idl-language-server
+
+          # Windows
+          tar -xzf dist/idl-language-server-x86_64-pc-windows-gnu/idl-language-server-x86_64-pc-windows-gnu.tar.gz -C intellij-extension/bin/windows
+
+          # Mac (Currently only aarch64 is built)
+          tar -xzf dist/idl-language-server-aarch64-apple-darwin/idl-language-server-aarch64-apple-darwin.tar.gz -C intellij-extension/bin/mac
+          chmod +x intellij-extension/bin/mac/idl-language-server
 
       - name: Setup Java
         uses: actions/setup-java@v5

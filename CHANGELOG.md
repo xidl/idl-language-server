@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.30.0](https://github.com/xidl/idl-language-server/compare/v0.29.0...v0.30.0) (2026-06-12)
+
+
+### Features
+
+* bump xidl-parser from 0.72.2 to 0.79.1 ([#100](https://github.com/xidl/idl-language-server/issues/100)) ([b094269](https://github.com/xidl/idl-language-server/commit/b094269d69ecc02117ef4f63185f75b78e3bef80))
+* bump xidlc from 0.72.2 to 0.79.1 ([#103](https://github.com/xidl/idl-language-server/issues/103)) ([3e0f56f](https://github.com/xidl/idl-language-server/commit/3e0f56f42da2417f43878ef399f27099fe4eb6b5))
+* bundle idl-language-server into intellij plugin distribution ([28b4583](https://github.com/xidl/idl-language-server/commit/28b4583cd6d0f5dbf9e2df6aafd06fe194a6d7bf))
+
 ## [0.29.0](https://github.com/xidl/idl-language-server/compare/v0.28.0...v0.29.0) (2026-06-12)
 
 

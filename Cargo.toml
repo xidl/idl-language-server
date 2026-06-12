@@ -24,7 +24,7 @@ xidlc = { version = "0.72.2", default-features = false, features = [
   "gen-rust-axum",
   "gen-openapi",
 ] }
-xidl-parser = "0.72.2"
+xidl-parser = "0.79.1"
 rust-embed = "8.4.0"
 minijinja = "2.20.0"
 axum = "0.8.9"

@@ -21,6 +21,13 @@ import com.intellij.psi.search.PsiSearchHelper
  */
 fun getPossibleNames(name: String): List<String> {
     val names = mutableListOf(name)
+    
+    // Support common generated code suffixes
+    names.add(name + "Server")
+    names.add(name + "Client")
+    names.add(name + "Impl")
+    names.add("I" + name)
+
     if (name.contains('_')) {
         val parts = name.split('_')
         if (parts.isNotEmpty()) {
@@ -59,19 +66,33 @@ fun getPossibleNames(name: String): List<String> {
             }
         }
     }
-    return names.distinct()
+
+    // Final pass for all variations with suffixes
+    val allNames = names.toMutableList()
+    for (n in names) {
+        allNames.add(n + "Server")
+        allNames.add(n + "Impl")
+    }
+
+    return allNames.distinct()
 }
 
 /**
  * Checks if the given PsiElement inside an IDL file is a symbol declaration (e.g. struct, interface, service, enum, bitmask name, or method name).
  */
 fun isIdlDeclaration(element: PsiElement): Boolean {
-    if (element.language.id != "IDL") return false
+    val file = element.containingFile ?: return false
+    // Support IDL files even if another plugin is providing a coarse PSI (e.g. PlainText)
+    if (element.language.id != "IDL" && !file.name.endsWith(".idl")) return false
+    
     val text = element.text
+    // A declaration identifier should be a single word, not a full line or containing spaces
+    if (text.isEmpty() || text.length > 100 || text.any { it.isWhitespace() }) return false
     if (!text.matches(Regex("[a-zA-Z_][a-zA-Z0-9_]*"))) return false
-    val fileText = element.containingFile.text ?: return false
+    
+    val fileText = file.text ?: return false
     val offset = element.textOffset
-    if (offset <= 0) return false
+    if (offset < 0) return false
 
     // Scan backward for the keyword (struct, interface, service, enum, bitmask)
     var i = offset - 1
@@ -123,20 +144,41 @@ fun isDefinition(element: PsiElement): Boolean {
 
     // Check by class name to support external language plugins dynamically without direct dependency
     val parentClass = parent.javaClass.name
-    if (parentClass.contains("GoTypeSpec") ||
-        parentClass.contains("GoFunction") ||
-        parentClass.contains("GoMethod") ||
-        parentClass.contains("PyClass") ||
+    val parentSimpleName = parent.javaClass.simpleName
+    
+    // Robust check for Go plugin elements (support GoLand and IntelliJ Go plugin)
+    if (parentClass.contains("Go") || parentClass.contains("com.goide")) {
+        if (parentSimpleName.contains("TypeSpec") ||
+            parentSimpleName.contains("Function") ||
+            parentSimpleName.contains("Method") ||
+            parentSimpleName.contains("Interface") ||
+            parentSimpleName.contains("Spec") ||
+            parentSimpleName.contains("Definition") ||
+            parentSimpleName.contains("Declaration") ||
+            parentSimpleName.contains("Type") ||
+            parentSimpleName.contains("Var") ||
+            parentSimpleName.contains("Const")
+        ) {
+            return true
+        }
+    }
+
+    if (parentClass.contains("PyClass") ||
         parentClass.contains("PyFunction") ||
+        parentClass.contains("PyTargetExpression") ||
         parentClass.contains("RsStruct") ||
         parentClass.contains("RsEnum") ||
         parentClass.contains("RsTrait") ||
         parentClass.contains("RsImpl") ||
+        parentClass.contains("RsFunction") ||
+        parentClass.contains("RsType") ||
         parentClass.contains("PsiClass") ||
         parentClass.contains("PsiMethod") ||
         parentClass.contains("KtClass") ||
         parentClass.contains("KtObjectDeclaration") ||
-        parentClass.contains("KtNamedFunction")
+        parentClass.contains("KtNamedFunction") ||
+        parentClass.contains("KtProperty") ||
+        parentClass.contains("KtConstructor")
     ) {
         // Ensure this element is actually the identifier/name of the parent
         if (parent is PsiNamedElement && parent.name == element.text) {

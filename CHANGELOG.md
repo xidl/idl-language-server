@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.29.0](https://github.com/xidl/idl-language-server/compare/v0.28.0...v0.29.0) (2026-06-12)
+
+
+### Features
+
+* add Makefile with build targets ([e17b03d](https://github.com/xidl/idl-language-server/commit/e17b03da6a0bdb84cd4317fc30371bf32451440d))
+* bump env_logger from 0.11.6 to 0.11.10 ([#101](https://github.com/xidl/idl-language-server/issues/101)) ([a2d6e65](https://github.com/xidl/idl-language-server/commit/a2d6e65870362813be9f1cc187213a7a90087c45))
+* bump log from 0.4.30 to 0.4.31 ([#102](https://github.com/xidl/idl-language-server/issues/102)) ([c37fba5](https://github.com/xidl/idl-language-server/commit/c37fba509f63ea8ccc6ed748eacd98af2cf2b37a))
+* **idea:** support code navigation ([786ec5e](https://github.com/xidl/idl-language-server/commit/786ec5e344cd8784e78a8d53882bb6c209d727f3))
+* **intellij:** improve cross-language navigation heuristic for Go and generated code ([1fd7561](https://github.com/xidl/idl-language-server/commit/1fd756149f3b449552a67c62018d0b563d14493b))
+
+
+### Bug Fixes
+
+* fix cargo build ([f09ad85](https://github.com/xidl/idl-language-server/commit/f09ad85ce1d89c8e6b7fa5255938479c586f2637))
+
 ## [0.28.0](https://github.com/xidl/idl-language-server/compare/v0.27.0...v0.28.0) (2026-06-01)
 
 

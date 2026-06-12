@@ -5,7 +5,8 @@ plugins {
 }
 
 group = providers.gradleProperty("pluginGroup").get()
-version = providers.gradleProperty("pluginVersion").get().substringBefore(" #").trim()
+version =
+    providers.gradleProperty("pluginVersion").get().substringBefore(" #").trim()
 
 kotlin {
     jvmToolchain(17)

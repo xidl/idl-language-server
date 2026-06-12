@@ -8,15 +8,26 @@ import com.intellij.platform.lsp.api.ProjectWideLspServerDescriptor
 import com.xidl.idl.IdlFileType
 
 class IdlLspServerSupportProvider : LspServerSupportProvider {
-    override fun fileOpened(project: Project, file: VirtualFile, serverStarter: LspServerSupportProvider.LspServerStarter) {
+    override fun fileOpened(
+        project: Project,
+        file: VirtualFile,
+        serverStarter: LspServerSupportProvider.LspServerStarter
+    ) {
         if (file.fileType == IdlFileType) {
-            serverStarter.ensureServerStarted(IdlLspServerDescriptor(project, "IDL"))
+            serverStarter.ensureServerStarted(
+                IdlLspServerDescriptor(
+                    project,
+                    "IDL"
+                )
+            )
         }
     }
 }
 
-class IdlLspServerDescriptor(project: Project, presentableName: String) : ProjectWideLspServerDescriptor(project, presentableName) {
-    override fun isSupportedFile(file: VirtualFile) = file.fileType == IdlFileType
+class IdlLspServerDescriptor(project: Project, presentableName: String) :
+    ProjectWideLspServerDescriptor(project, presentableName) {
+    override fun isSupportedFile(file: VirtualFile) =
+        file.fileType == IdlFileType
 
     override fun createCommandLine(): GeneralCommandLine {
         return GeneralCommandLine("idl-language-server")

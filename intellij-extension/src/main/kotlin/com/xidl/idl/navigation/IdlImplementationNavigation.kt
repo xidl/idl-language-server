@@ -5,6 +5,8 @@ import com.intellij.codeInsight.daemon.RelatedItemLineMarkerProvider
 import com.intellij.codeInsight.navigation.NavigationGutterIconBuilder
 import com.intellij.codeInsight.navigation.actions.GotoDeclarationHandler
 import com.intellij.icons.AllIcons
+import com.intellij.notification.NotificationGroupManager
+import com.intellij.notification.NotificationType
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
@@ -14,118 +16,127 @@ import com.intellij.psi.PsiNameIdentifierOwner
 import com.intellij.psi.PsiNamedElement
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.PsiSearchHelper
+import com.intellij.psi.util.elementType
 
-/**
- * Generates all possible casing variations of a name (camelCase, PascalCase, snake_case, original)
- * to support searching across different programming languages.
- */
-fun getPossibleNames(name: String): List<String> {
-    val names = mutableListOf(name)
-    
-    // Support common generated code suffixes
-    names.add(name + "Server")
-    names.add(name + "Client")
-    names.add(name + "Impl")
-    names.add("I" + name)
-
-    if (name.contains('_')) {
-        val parts = name.split('_')
-        if (parts.isNotEmpty()) {
-            // camelCase
-            val camel = StringBuilder(parts[0].lowercase())
-            for (i in 1 until parts.size) {
-                val part = parts[i]
-                if (part.isNotEmpty()) {
-                    camel.append(part.substring(0, 1).uppercase())
-                    camel.append(part.substring(1).lowercase())
-                }
-            }
-            names.add(camel.toString())
-
-            // PascalCase
-            val pascal = StringBuilder()
-            for (part in parts) {
-                if (part.isNotEmpty()) {
-                    pascal.append(part.substring(0, 1).uppercase())
-                    pascal.append(part.substring(1).lowercase())
-                }
-            }
-            names.add(pascal.toString())
-        }
-    } else {
-        val snake = name.replace(Regex("([a-z])([A-Z])"), "$1_$2").lowercase()
-        if (snake != name) {
-            names.add(snake)
-        }
-        if (name.isNotEmpty()) {
-            val firstChar = name[0]
-            if (firstChar.isLowerCase()) {
-                names.add(name.substring(0, 1).uppercase() + name.substring(1))
-            } else if (firstChar.isUpperCase()) {
-                names.add(name.substring(0, 1).lowercase() + name.substring(1))
-            }
-        }
-    }
-
-    // Final pass for all variations with suffixes
-    val allNames = names.toMutableList()
-    for (n in names) {
-        allNames.add(n + "Server")
-        allNames.add(n + "Impl")
-    }
-
-    return allNames.distinct()
+private fun notifyDebug(project: Project, message: String) {
+    NotificationGroupManager.getInstance()
+        .getNotificationGroup("Compiler")
+        .createNotification(
+            "IDL Navigation Debug",
+            message,
+            NotificationType.INFORMATION
+        )
+        .notify(project)
 }
 
 /**
- * Checks if the given PsiElement inside an IDL file is a symbol declaration (e.g. struct, interface, service, enum, bitmask name, or method name).
+ * Generates all possible casing variations of a name to support searching across different programming languages.
+ * Prioritizes PascalCase for Go/Java/Rust.
  */
-fun isIdlDeclaration(element: PsiElement): Boolean {
-    val file = element.containingFile ?: return false
-    // Support IDL files even if another plugin is providing a coarse PSI (e.g. PlainText)
-    if (element.language.id != "IDL" && !file.name.endsWith(".idl")) return false
-    
-    val text = element.text
-    // A declaration identifier should be a single word, not a full line or containing spaces
-    if (text.isEmpty() || text.length > 100 || text.any { it.isWhitespace() }) return false
-    if (!text.matches(Regex("[a-zA-Z_][a-zA-Z0-9_]*"))) return false
-    
-    val fileText = file.text ?: return false
-    val offset = element.textOffset
-    if (offset < 0) return false
+fun getPossibleNames(name: String, kind: SymbolKind): List<String> {
+    val names = mutableListOf<String>()
+
+    // 1. PascalCase (Standard for exported symbols in Go, types in most languages)
+    val pascal = if (name.contains('_')) {
+        name.split('_').joinToString("") {
+            it.lowercase().replaceFirstChar { c -> c.uppercase() }
+        }
+    } else {
+        name.replaceFirstChar { c -> c.uppercase() }
+    }
+    names.add(pascal)
+    if (kind == SymbolKind.Interface) {
+        names.add(name + "Service")
+    }
+
+    return names.distinct()
+}
+
+enum class SymbolKind {
+    Interface,
+    Struct,
+    Enum,
+    Bitmask,
+    Union,
+    Unknown
+}
+
+/**
+ * Helper to check if a word at a specific offset in text is a declaration.
+ */
+fun isDeclarationAtOffset(
+    text: String,
+    word: String,
+    offset: Int
+): SymbolKind? {
+    if (!word.matches(Regex("[a-zA-Z_][a-zA-Z0-9_]*"))) return null
 
     // Scan backward for the keyword (struct, interface, service, enum, bitmask)
     var i = offset - 1
-    while (i >= 0 && fileText[i].isWhitespace()) {
+    while (i >= 0 && text[i].isWhitespace()) {
         i--
     }
     val end = i + 1
-    while (i >= 0 && (fileText[i].isLetterOrDigit() || fileText[i] == '_')) {
+    while (i >= 0 && (text[i].isLetterOrDigit() || text[i] == '_')) {
         i--
     }
     val start = i + 1
     if (start < end) {
-        val prevWord = fileText.substring(start, end)
-        if (prevWord == "struct" || prevWord == "interface" || prevWord == "service" || prevWord == "enum" || prevWord == "bitmask") {
-            return true
+        val prevWord = text.substring(start, end)
+        if (prevWord == "struct") {
+            return SymbolKind.Struct
+        }
+        if (prevWord == "interface") {
+            return SymbolKind.Interface
+        }
+        if (prevWord == "enum") {
+            return SymbolKind.Enum
+        }
+        if (prevWord == "bitmask") {
+            return SymbolKind.Bitmask
+        }
+        if (prevWord == "union") {
+            return SymbolKind.Union
         }
     }
 
-    // Check if it's a method declaration: followed by '(' and not preceded by '@' (which would be an annotation)
+    // Check if it's a method declaration: followed by '(' and not preceded by '@'
     var k = offset - 1
-    while (k >= 0 && fileText[k].isWhitespace()) {
+    while (k >= 0 && text[k].isWhitespace()) {
         k--
     }
-    if (k >= 0 && fileText[k] == '@') {
-        return false
+    if (k >= 0 && text[k] == '@') {
+        return null
     }
 
-    var j = offset + text.length
-    while (j < fileText.length && fileText[j].isWhitespace()) {
+    var j = offset + word.length
+    while (j < text.length && text[j].isWhitespace()) {
         j++
     }
-    if (j < fileText.length && fileText[j] == '(') {
-        return true
+    if (j < text.length && text[j] == '(') {
+        return SymbolKind.Unknown
+    }
+
+    return null
+}
+
+/**
+ * Checks if the given PsiElement inside an IDL file is a symbol declaration.
+ */
+fun isIdlDeclaration(element: PsiElement): Boolean {
+    val file = element.containingFile ?: return false
+    val langId = element.language.id
+    if (langId != "IDL" && langId != "LSP" && langId != "TEXT" && !file.name.endsWith(
+            ".idl"
+        )
+    ) return false
+
+    val text = element.text
+    val fullText = file.text ?: return false
+
+    // If it's a leaf element (normal case)
+    if (text.length < 100 && !text.contains(" ")) {
+        return isDeclarationAtOffset(fullText, text, element.textOffset) != null
     }
 
     return false
@@ -134,57 +145,65 @@ fun isIdlDeclaration(element: PsiElement): Boolean {
 /**
  * Checks if the given PsiElement is a definition of a type, class, struct, function, etc. in other target languages.
  */
-fun isDefinition(element: PsiElement): Boolean {
+fun isDefinition(
+    element: PsiElement,
+    kind: SymbolKind
+): Boolean {
+
     val parent = element.parent ?: return false
+
+    if (parent.elementType.toString() == "METHOD_DECLARATION") return false
 
     // If the parent is a standard IntelliJ named element, and this element is its name identifier
     if (parent is PsiNameIdentifierOwner && parent.nameIdentifier == element) {
         return true
     }
 
-    // Check by class name to support external language plugins dynamically without direct dependency
     val parentClass = parent.javaClass.name
     val parentSimpleName = parent.javaClass.simpleName
-    
+
     // Robust check for Go plugin elements (support GoLand and IntelliJ Go plugin)
-    if (parentClass.contains("Go") || parentClass.contains("com.goide")) {
+    if (parentClass.contains("Go")
+        || parentClass.contains("com.goide")
+    ) {
+        // Specifically ONLY match major structural elements
         if (parentSimpleName.contains("TypeSpec") ||
             parentSimpleName.contains("Function") ||
             parentSimpleName.contains("Method") ||
             parentSimpleName.contains("Interface") ||
-            parentSimpleName.contains("Spec") ||
-            parentSimpleName.contains("Definition") ||
-            parentSimpleName.contains("Declaration") ||
-            parentSimpleName.contains("Type") ||
-            parentSimpleName.contains("Var") ||
-            parentSimpleName.contains("Const")
+            parentSimpleName.contains("GoSpecTypeImpl") // interface
         ) {
+            // Exclude noisy definitions
+            if (parentSimpleName.contains("Var") ||
+                parentSimpleName.contains("Const") ||
+                parentSimpleName.contains("Field") ||
+                parentSimpleName.contains("Param") ||
+                parentSimpleName.contains("Receiver")
+            ) {
+                return false
+            }
             return true
         }
+        return false
     }
 
     if (parentClass.contains("PyClass") ||
         parentClass.contains("PyFunction") ||
-        parentClass.contains("PyTargetExpression") ||
         parentClass.contains("RsStruct") ||
         parentClass.contains("RsEnum") ||
         parentClass.contains("RsTrait") ||
         parentClass.contains("RsImpl") ||
         parentClass.contains("RsFunction") ||
-        parentClass.contains("RsType") ||
         parentClass.contains("PsiClass") ||
         parentClass.contains("PsiMethod") ||
         parentClass.contains("KtClass") ||
         parentClass.contains("KtObjectDeclaration") ||
-        parentClass.contains("KtNamedFunction") ||
-        parentClass.contains("KtProperty") ||
-        parentClass.contains("KtConstructor")
+        parentClass.contains("KtNamedFunction")
     ) {
         // Ensure this element is actually the identifier/name of the parent
         if (parent is PsiNamedElement && parent.name == element.text) {
             return true
         }
-        // Fallback for custom AST node names that don't fully implement PsiNamedElement
         try {
             val nameMethod = parent.javaClass.getMethod("getName")
             val name = nameMethod.invoke(parent) as? String
@@ -199,47 +218,77 @@ fun isDefinition(element: PsiElement): Boolean {
 }
 
 /**
- * Searches the project (excluding IDL files themselves) for type/class/struct/method definitions matching the given symbol name
- * or its casing variations (camelCase, PascalCase, snake_case).
+ * Searches the project for definitions matching the given symbol name.
  */
-fun findImplementations(project: Project, name: String): List<PsiElement> {
+fun findImplementations(
+    project: Project,
+    name: String,
+    kind: SymbolKind
+): List<PsiElement> {
     val results = mutableListOf<PsiElement>()
-    val scope = GlobalSearchScope.allScope(project)
-    val possibleNames = getPossibleNames(name)
+    val scope = GlobalSearchScope.projectScope(project)
+    val possibleNames = getPossibleNames(name, kind)
 
     for (targetName in possibleNames) {
         PsiSearchHelper.getInstance(project).processAllFilesWithWord(
             targetName,
             scope,
             { file ->
-                // Skip searching in IDL files to only find target implementations (Go, Python, Rust, etc.)
-                if (file.language.id == "IDL") return@processAllFilesWithWord true
+                val langId = file.language.id
+                val path = file.virtualFile?.path ?: ""
+                if (langId == "IDL" || langId == "LSP" || file.name.endsWith(".idl")) return@processAllFilesWithWord true
+                if (path.contains("/build/") || path.contains("/dist/") || path.contains(
+                        "/out/"
+                    )
+                ) return@processAllFilesWithWord true
 
-                val fileText = file.text
+                val fileText = file.text ?: return@processAllFilesWithWord true
+
+                // ONLY INCLUDE GENERATED FILES
+                if (!fileText.contains("Code generated by xidlc") || !fileText.contains(
+                        "DO NOT EDIT"
+                    )
+                ) {
+                    return@processAllFilesWithWord true
+                }
+
                 var index = fileText.indexOf(targetName)
                 while (index >= 0) {
                     val element = file.findElementAt(index)
                     if (element != null && element.text == targetName) {
-                        if (isDefinition(element)) {
+                        if (isDefinition(element, kind)) {
                             val decl = element.parent
                             if (decl != null && !results.contains(decl)) {
                                 results.add(decl)
                             }
                         }
                     }
+                    if (results.size > 20) return@processAllFilesWithWord false
                     index = fileText.indexOf(targetName, index + 1)
                 }
-                true // Continue searching
+                true
             },
-            true // Case-sensitive
+            true
         )
+        // If we found a PascalCase match (likely Go exported symbol), we can stop early if we have enough
+        if (targetName[0].isUpperCase() && results.size >= 2) break
     }
-    return results
+
+    // Final filtering and prioritization
+    val prioritized = results.filter {
+        val path = it.containingFile.virtualFile?.path ?: ""
+        !path.contains("_test.go") && !path.contains("Test.java")
+    }.sortedBy {
+        // Prefer PascalCase matches for Go/Java
+        val elementName = (it as? PsiNamedElement)?.name ?: ""
+        if (elementName.isNotEmpty() && elementName[0].isUpperCase()) 0 else 1
+    }
+
+    return prioritized.ifEmpty { results }
 }
 
 /**
- * Shows gutter line markers in IDL files next to struct, service, enum definitions.
- * Clicking the marker allows navigating to matching Go/Python/Rust/Java implementations.
+ * Shows gutter line markers in IDL files.
  */
 class IdlImplementationLineMarkerProvider : RelatedItemLineMarkerProvider() {
     override fun collectNavigationMarkers(
@@ -247,22 +296,70 @@ class IdlImplementationLineMarkerProvider : RelatedItemLineMarkerProvider() {
         result: MutableCollection<in RelatedItemLineMarkerInfo<*>>
     ) {
         if (DumbService.isDumb(element.project)) return
-        if (!isIdlDeclaration(element)) return
 
-        val name = element.text
-        val builder = NavigationGutterIconBuilder.create(AllIcons.Gutter.ImplementedMethod)
-            .setTooltipText("Navigate to Go/Python/Rust implementation")
-            .setEmptyPopupText("No implementations found")
-            .setTargets(NotNullLazyValue.lazy {
-                findImplementations(element.project, name)
-            })
+        val file = element.containingFile ?: return
+        if (!file.name.endsWith(".idl")) return
 
-        result.add(builder.createLineMarkerInfo(element))
+        val langId = element.language.id
+
+        // If it's a normal IDL PSI (tokenized)
+        if (langId == "IDL" || langId == "LSP") {
+            if (isIdlDeclaration(element)) {
+                addMarker(element, element.text, result)
+            }
+            return
+        }
+
+        // If it's PlainText
+        if (langId == "TEXT" && element.parent == null) {
+            val fullText = element.text
+            val regex =
+                Regex("\\b(struct|interface|service|enum|bitmask)\\s+([a-zA-Z_][a-zA-Z0-9_]*)")
+            regex.findAll(fullText).forEach { match ->
+                val name = match.groups[2]?.value ?: return@forEach
+                val range = match.groups[2]?.range ?: return@forEach
+                val leaf = element.findElementAt(range.first)
+                if (leaf != null) {
+                    addMarker(leaf, name, result)
+                }
+            }
+
+            val methodRegex = Regex("\\n\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\(")
+            methodRegex.findAll(fullText).forEach { match ->
+                val name = match.groups[1]?.value ?: return@forEach
+                val range = match.groups[1]?.range ?: return@forEach
+                if (name == "struct" || name == "interface" || name == "service" || name == "enum" || name == "bitmask") return@forEach
+                val leaf = element.findElementAt(range.first)
+                if (leaf != null) {
+                    addMarker(leaf, name, result)
+                }
+            }
+        }
+    }
+
+    private fun addMarker(
+        anchor: PsiElement,
+        name: String,
+        result: MutableCollection<in RelatedItemLineMarkerInfo<*>>
+    ) {
+        val builder =
+            NavigationGutterIconBuilder.create(AllIcons.Gutter.ImplementedMethod)
+                .setTooltipText("Navigate to implementation of '$name'")
+                .setEmptyPopupText("No implementations found for '$name'")
+                .setTargets(NotNullLazyValue.lazy {
+                    findImplementations(
+                        anchor.project,
+                        name,
+                        SymbolKind.Unknown
+                    )
+                })
+
+        result.add(builder.createLineMarkerInfo(anchor))
     }
 }
 
 /**
- * Handles F12 / Ctrl+Click (Go to Declaration/Definition) on IDL declarations to jump directly to matching implementations.
+ * Handles F12 / Ctrl+Click.
  */
 class IdlGotoDeclarationHandler : GotoDeclarationHandler {
     override fun getGotoDeclarationTargets(
@@ -270,12 +367,36 @@ class IdlGotoDeclarationHandler : GotoDeclarationHandler {
         offset: Int,
         editor: Editor?
     ): Array<PsiElement>? {
-        if (sourceElement == null || DumbService.isDumb(sourceElement.project)) return null
-        if (!isIdlDeclaration(sourceElement)) return null
+        if (sourceElement == null || editor == null || DumbService.isDumb(
+                sourceElement.project
+            )
+        ) return null
 
-        val name = sourceElement.text
-        val targets = findImplementations(sourceElement.project, name)
-        if (targets.isEmpty()) return null
-        return targets.toTypedArray()
+        val file = sourceElement.containingFile ?: return null
+        if (!file.name.endsWith(".idl")) return null
+
+        val fullText = file.text ?: return null
+
+        var start = offset
+        while (start > 0 && (fullText[start - 1].isLetterOrDigit() || fullText[start - 1] == '_')) {
+            start--
+        }
+        var end = offset
+        while (end < fullText.length && (fullText[end].isLetterOrDigit() || fullText[end] == '_')) {
+            end++
+        }
+
+        if (start >= end) return null
+        val name = fullText.substring(start, end)
+
+        var symbolKind = isDeclarationAtOffset(fullText, name, start)
+        if (symbolKind == null) {
+            return null;
+        }
+
+        val targets =
+            findImplementations(sourceElement.project, name, symbolKind)
+
+        return if (targets.isEmpty()) null else targets.toTypedArray()
     }
 }

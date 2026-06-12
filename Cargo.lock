@@ -579,7 +579,7 @@ checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 
 [[package]]
 name = "idl-language-server"
-version = "0.28.0"
+version = "0.29.0"
 dependencies = [
  "anyhow",
  "axum",

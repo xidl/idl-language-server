@@ -47,3 +47,11 @@ intellijPlatform {
         }
     }
 }
+
+tasks {
+    buildPlugin {
+        from("bin") {
+            into("bin")
+        }
+    }
+}

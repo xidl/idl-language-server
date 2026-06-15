@@ -31,7 +31,7 @@ axum = "0.8.9"
 utoipa = "5.5.0"
 
 utoipa-scalar = { version = "0.3", features = ["axum"] }
-tower-http = { version = "0.6.11", features = ["cors"] }
+tower-http = { version = "0.7.0", features = ["cors"] }
 strsim = "0.11.1"
 
 [lints.clippy]

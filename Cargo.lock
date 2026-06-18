@@ -601,7 +601,7 @@ dependencies = [
  "tree-sitter-idl",
  "utoipa",
  "utoipa-scalar",
- "xidl-parser",
+ "xidl-parser 0.79.1",
  "xidlc",
 ]
 
@@ -1679,9 +1679,9 @@ checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
 
 [[package]]
 name = "xidl-jsonrpc"
-version = "0.79.1"
+version = "0.80.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3fc30ce9cfb3e21c1842e182e6904050ebf13b6c4cd44a49cbfd073d3015c48"
+checksum = "6302ff5d313658a9e35742c9f561fc454b922e56970dbebb2fb2a762e2f12e32"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -1710,7 +1710,26 @@ dependencies = [
  "thiserror",
  "tree-sitter",
  "tree-sitter-idl",
- "xidl-parser-derive",
+ "xidl-parser-derive 0.79.1",
+]
+
+[[package]]
+name = "xidl-parser"
+version = "0.80.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d2a9a3f77e6b8301f9616cfca8721b275fb93f42c415e1de7039570ee1404943"
+dependencies = [
+ "convert_case",
+ "include_dir",
+ "jiff",
+ "md5",
+ "minijinja",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tree-sitter",
+ "tree-sitter-idl",
+ "xidl-parser-derive 0.80.0",
 ]
 
 [[package]]
@@ -1728,10 +1747,24 @@ dependencies = [
 ]
 
 [[package]]
-name = "xidlc"
-version = "0.79.1"
+name = "xidl-parser-derive"
+version = "0.80.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d81cf552d2674f16fec1dbbdae2dc5de21c6b16942c5219411ab1ec0c926f8be"
+checksum = "48dfe486214f766ed3d5f399a9458a31ff7e073b355995eb219c4e20e6b198cb"
+dependencies = [
+ "convert_case",
+ "darling",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
+ "tree-sitter-idl",
+]
+
+[[package]]
+name = "xidlc"
+version = "0.80.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c8ef5e4d7cbda5f06a5ee5c6f883d38f6c799da7cb6f97f2c59b401570450b98"
 dependencies = [
  "async-trait",
  "convert_case",
@@ -1753,7 +1786,7 @@ dependencies = [
  "tree-sitter",
  "tree-sitter-idl",
  "xidl-jsonrpc",
- "xidl-parser",
+ "xidl-parser 0.80.0",
 ]
 
 [[package]]

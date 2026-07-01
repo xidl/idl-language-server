@@ -1679,9 +1679,9 @@ checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
 
 [[package]]
 name = "xidl-jsonrpc"
-version = "0.83.0"
+version = "0.83.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "043f09a18ca2ad7753c984c2e364607c1321343d9450fef26df9ec7ac5287f38"
+checksum = "e9d0e3d1dc2bf279206650eb75621d3ef31f8c15c80b5fc710c59246462ff87d"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -1729,9 +1729,9 @@ dependencies = [
 
 [[package]]
 name = "xidlc"
-version = "0.83.0"
+version = "0.83.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "67ef22f779d1f8898bbaf9563ffa2e96dc8268e8f3ffea53edab6af7a81daa5f"
+checksum = "2de0d0b110660767dd0e6ba3e8c033f348a27096dc64f27de4f4f6c60b76a3b2"
 dependencies = [
  "async-trait",
  "convert_case",

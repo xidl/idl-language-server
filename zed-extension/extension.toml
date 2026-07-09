@@ -2,7 +2,7 @@ id = "idl"
 name = "IDL"
 version = "0.0.1"
 schema_version = 1
-authors = ["mcthesw"]
+authors = ["cathaysia"]
 description = "IDL language server support for Zed"
 repository = "https://github.com/xidl/idl-language-server"
 

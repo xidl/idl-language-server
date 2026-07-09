@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.31.0](https://github.com/xidl/idl-language-server/compare/v0.30.0...v0.31.0) (2026-07-09)
+
+
+### Features
+
+* add Zed extension plugin (closes [#124](https://github.com/xidl/idl-language-server/issues/124)) ([43142bc](https://github.com/xidl/idl-language-server/commit/43142bc3d613ea1f4dc22a7597fa55e73ebf345b))
+* bump anyhow from 1.0.102 to 1.0.103 ([#120](https://github.com/xidl/idl-language-server/issues/120)) ([4046a40](https://github.com/xidl/idl-language-server/commit/4046a40566ae1075a029c37d5e34b5924b753b9b))
+* bump env_logger from 0.11.10 to 0.11.11 ([#117](https://github.com/xidl/idl-language-server/issues/117)) ([3ca0b68](https://github.com/xidl/idl-language-server/commit/3ca0b68395c91c473e32766aaae04e9c5002e0ca))
+* bump log from 0.4.31 to 0.4.32 ([#108](https://github.com/xidl/idl-language-server/issues/108)) ([2dacb15](https://github.com/xidl/idl-language-server/commit/2dacb15dfca61a519932686f8e5f445440b3768f))
+* bump log from 0.4.32 to 0.4.33 ([#115](https://github.com/xidl/idl-language-server/issues/115)) ([b6cd400](https://github.com/xidl/idl-language-server/commit/b6cd40090b6a5f5c1a4d557a911c4738951057b8))
+* bump minijinja from 2.20.0 to 2.21.0 ([#110](https://github.com/xidl/idl-language-server/issues/110)) ([9c3e900](https://github.com/xidl/idl-language-server/commit/9c3e9009a33673fe7e6dda4d9fac93e7e42cac9a))
+* bump rust-embed from 8.11.0 to 8.12.0 ([#125](https://github.com/xidl/idl-language-server/issues/125)) ([4c4a42c](https://github.com/xidl/idl-language-server/commit/4c4a42c68a648d9a6ebabf5cfea9ff59302b30aa))
+* bump tower-http from 0.6.11 to 0.7.0 ([#109](https://github.com/xidl/idl-language-server/issues/109)) ([245964d](https://github.com/xidl/idl-language-server/commit/245964d823689badef0ba3461b9924b7b76a6993))
+* bump xidl-parser from 0.79.1 to 0.80.0 ([#112](https://github.com/xidl/idl-language-server/issues/112)) ([4ec4501](https://github.com/xidl/idl-language-server/commit/4ec450172f427bbcd1ce6724bc57f0b1642085f4))
+* bump xidl-parser from 0.80.0 to 0.82.0 ([#114](https://github.com/xidl/idl-language-server/issues/114)) ([e861711](https://github.com/xidl/idl-language-server/commit/e861711e105f2c3976c377a2fb53e97bacf5746c))
+* bump xidl-parser from 0.82.0 to 0.83.0 ([#119](https://github.com/xidl/idl-language-server/issues/119)) ([3f010ab](https://github.com/xidl/idl-language-server/commit/3f010ab8ce9027b16f7fdec10edfb99c6be30e48))
+* bump xidl-parser from 0.83.0 to 0.83.1 ([#122](https://github.com/xidl/idl-language-server/issues/122)) ([21e3c6f](https://github.com/xidl/idl-language-server/commit/21e3c6ff5915c56f4e5a2f98638a2b4bc6ba0035))
+* bump xidlc from 0.79.1 to 0.80.0 ([#111](https://github.com/xidl/idl-language-server/issues/111)) ([63124e0](https://github.com/xidl/idl-language-server/commit/63124e0689ad536f985d36fdd2beda54bf108c28))
+* bump xidlc from 0.80.0 to 0.82.0 ([#116](https://github.com/xidl/idl-language-server/issues/116)) ([98b6491](https://github.com/xidl/idl-language-server/commit/98b64913dadc86a73cfcd504a0a6013bc988390f))
+* bump xidlc from 0.82.0 to 0.83.0 ([#118](https://github.com/xidl/idl-language-server/issues/118)) ([86ee465](https://github.com/xidl/idl-language-server/commit/86ee4658d7929b0ee3631bf6cfa28c9839da6f6d))
+* bump xidlc from 0.83.0 to 0.83.1 ([#123](https://github.com/xidl/idl-language-server/issues/123)) ([feebbfe](https://github.com/xidl/idl-language-server/commit/feebbfe43003b88d661e05b013b89195ad1e2a35))
+
+
+### Bug Fixes
+
+* **zed:** fix author ([6c4c180](https://github.com/xidl/idl-language-server/commit/6c4c1809424276e5e37fea3ff4c39aeee536ac61))
+
 ## [0.30.0](https://github.com/xidl/idl-language-server/compare/v0.29.0...v0.30.0) (2026-06-12)
 
 

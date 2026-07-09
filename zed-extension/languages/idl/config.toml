@@ -1,0 +1,4 @@
+name = "IDL"
+grammar = "idl"
+path_suffixes = ["idl"]
+line_comments = ["//"]

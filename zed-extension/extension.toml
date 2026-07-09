@@ -1,0 +1,15 @@
+id = "idl"
+name = "IDL"
+version = "0.0.1"
+schema_version = 1
+authors = ["mcthesw"]
+description = "IDL language server support for Zed"
+repository = "https://github.com/xidl/idl-language-server"
+
+[grammars.idl]
+repository = "https://github.com/cathaysia/tree-sitter-idl"
+rev = "v3.18.0"
+
+[language_servers.idl-language-server]
+name = "IDL Language Server"
+language = "IDL"

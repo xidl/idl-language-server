@@ -8,7 +8,7 @@ repository = "https://github.com/xidl/idl-language-server"
 
 [grammars.idl]
 repository = "https://github.com/cathaysia/tree-sitter-idl"
-rev = "v3.18.0"
+rev = "d9ac4b12fd2092fea27f6803defd14b2ae10b4f9"
 
 [language_servers.idl-language-server]
 name = "IDL Language Server"

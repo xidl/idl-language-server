@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.31.1](https://github.com/xidl/idl-language-server/compare/v0.31.0...v0.31.1) (2026-07-10)
+
+
+### Bug Fixes
+
+* **zed:** add syntax highlighting and pin grammar revision ([b5e2020](https://github.com/xidl/idl-language-server/commit/b5e2020d73ac1536a2b44d2c2ecdb68b0aee9d2b))
+
 ## [0.31.0](https://github.com/xidl/idl-language-server/compare/v0.30.0...v0.31.0) (2026-07-09)
 
 

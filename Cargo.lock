@@ -606,7 +606,7 @@ dependencies = [
  "tree-sitter-idl",
  "utoipa",
  "utoipa-scalar",
- "xidl-parser",
+ "xidl-parser 0.84.0",
  "xidlc",
 ]
 
@@ -1732,7 +1732,26 @@ dependencies = [
  "thiserror",
  "tree-sitter",
  "tree-sitter-idl",
- "xidl-parser-derive",
+ "xidl-parser-derive 0.83.1",
+]
+
+[[package]]
+name = "xidl-parser"
+version = "0.84.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f2da2df6e76b4272cf980befac7471531c7955184215e8219260dfca8aa4ffa"
+dependencies = [
+ "convert_case",
+ "include_dir",
+ "jiff",
+ "md5",
+ "minijinja",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tree-sitter",
+ "tree-sitter-idl",
+ "xidl-parser-derive 0.84.0",
 ]
 
 [[package]]
@@ -1740,6 +1759,20 @@ name = "xidl-parser-derive"
 version = "0.83.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68194d933d0b639d06e83c0b4e53e3591e15dd8921f5616fa9ff2bbcbdbc023e"
+dependencies = [
+ "convert_case",
+ "darling",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
+ "tree-sitter-idl",
+]
+
+[[package]]
+name = "xidl-parser-derive"
+version = "0.84.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "19b8cb592cf57bb18a46ec9a11f357ad20d80bdcf6405de379c7281b13e67084"
 dependencies = [
  "convert_case",
  "darling",
@@ -1775,7 +1808,7 @@ dependencies = [
  "tree-sitter",
  "tree-sitter-idl",
  "xidl-jsonrpc",
- "xidl-parser",
+ "xidl-parser 0.83.1",
 ]
 
 [[package]]

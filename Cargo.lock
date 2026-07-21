@@ -606,7 +606,7 @@ dependencies = [
  "tree-sitter-idl",
  "utoipa",
  "utoipa-scalar",
- "xidl-parser 0.85.0",
+ "xidl-parser",
  "xidlc",
 ]
 
@@ -1712,9 +1712,9 @@ checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
 
 [[package]]
 name = "xidl-jsonrpc"
-version = "0.84.0"
+version = "0.85.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1db8383b3519e40934d316bb95a347572c197fba0f4c4ab962332cbad848fbda"
+checksum = "0d4c69ac0967511778d50eb24737691e8fb718516462b5a405e0b11987781deb"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -1725,25 +1725,6 @@ dependencies = [
  "serde_json",
  "thiserror",
  "tokio",
-]
-
-[[package]]
-name = "xidl-parser"
-version = "0.84.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f2da2df6e76b4272cf980befac7471531c7955184215e8219260dfca8aa4ffa"
-dependencies = [
- "convert_case",
- "include_dir",
- "jiff",
- "md5",
- "minijinja",
- "serde",
- "serde_json",
- "thiserror",
- "tree-sitter",
- "tree-sitter-idl",
- "xidl-parser-derive 0.84.0",
 ]
 
 [[package]]
@@ -1762,21 +1743,7 @@ dependencies = [
  "thiserror",
  "tree-sitter",
  "tree-sitter-idl",
- "xidl-parser-derive 0.85.0",
-]
-
-[[package]]
-name = "xidl-parser-derive"
-version = "0.84.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "19b8cb592cf57bb18a46ec9a11f357ad20d80bdcf6405de379c7281b13e67084"
-dependencies = [
- "convert_case",
- "darling",
- "proc-macro2",
- "quote",
- "syn 2.0.117",
- "tree-sitter-idl",
+ "xidl-parser-derive",
 ]
 
 [[package]]
@@ -1795,9 +1762,9 @@ dependencies = [
 
 [[package]]
 name = "xidlc"
-version = "0.84.0"
+version = "0.85.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0cc175498b1c787437a1a9004de3230197413f58a1bca32b70c29ea83a52197b"
+checksum = "ee942fa60c4334f4e5f7bbc8bf3963b65d7d9452500cc5c4d6d533e3269a9a51"
 dependencies = [
  "async-trait",
  "convert_case",
@@ -1819,7 +1786,7 @@ dependencies = [
  "tree-sitter",
  "tree-sitter-idl",
  "xidl-jsonrpc",
- "xidl-parser 0.84.0",
+ "xidl-parser",
 ]
 
 [[package]]

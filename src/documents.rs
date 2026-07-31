@@ -2,7 +2,7 @@ use log::{debug, warn};
 use ropey::Rope;
 use tower_lsp::lsp_types::*;
 
-use crate::analysis::{build_diagnostics, build_highlight_tokens};
+use crate::analysis::{build_diagnostics, build_highlight_tokens, byte_to_position};
 use crate::context::AppContext;
 
 pub(crate) struct TextDocumentChange<'a> {
@@ -27,10 +27,7 @@ pub(crate) fn format_text(
     Some(vec![TextEdit {
         range: Range {
             start: Position::new(0, 0),
-            end: Position::new(
-                rope.len_lines() as u32,
-                rope.line(rope.len_lines() - 1).len_chars() as u32,
-            ),
+            end: byte_to_position(&rope, rope.len_bytes()),
         },
         new_text: formatted_text,
     }])

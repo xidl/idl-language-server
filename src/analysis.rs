@@ -136,6 +136,7 @@ pub(crate) fn build_document_symbols(text: &str, rope: &Rope) -> Vec<DocumentSym
 }
 
 pub(crate) fn build_diagnostics(text: &str) -> Vec<Diagnostic> {
+    let rope = Rope::from_str(text);
     let mut parser = Parser::new();
     if parser.set_language(&tree_sitter_idl::language()).is_err() {
         debug!("failed to set tree-sitter language for diagnostics");
@@ -172,16 +173,7 @@ pub(crate) fn build_diagnostics(text: &str) -> Vec<Diagnostic> {
         };
         match capture_name {
             "error" => {
-                let range = Range {
-                    start: Position::new(
-                        capture.node.start_position().row as u32,
-                        capture.node.start_position().column as u32,
-                    ),
-                    end: Position::new(
-                        capture.node.end_position().row as u32,
-                        capture.node.end_position().column as u32,
-                    ),
-                };
+                let range = node_range(capture.node, &rope);
                 diagnostics.push(Diagnostic {
                     range,
                     severity: Some(DiagnosticSeverity::ERROR),
@@ -210,16 +202,7 @@ pub(crate) fn build_diagnostics(text: &str) -> Vec<Diagnostic> {
                     continue;
                 }
 
-                let range = Range {
-                    start: Position::new(
-                        capture.node.start_position().row as u32,
-                        capture.node.start_position().column as u32,
-                    ),
-                    end: Position::new(
-                        capture.node.end_position().row as u32,
-                        capture.node.end_position().column as u32,
-                    ),
-                };
+                let range = node_range(capture.node, &rope);
                 let range_key = (
                     range.start.line,
                     range.start.character,
@@ -700,12 +683,48 @@ pub(crate) fn node_range(node: Node<'_>, rope: &Rope) -> Range {
     }
 }
 
-fn byte_to_position(rope: &Rope, byte: usize) -> Position {
+pub(crate) fn byte_to_position(rope: &Rope, byte: usize) -> Position {
+    let byte = byte.min(rope.len_bytes());
     let line = rope.byte_to_line(byte);
-    let column = rope
+    let chars = rope
         .byte_to_char(byte)
         .saturating_sub(rope.line_to_char(line));
-    Position::new(line as u32, column as u32)
+    let character = rope
+        .line(line)
+        .chars()
+        .take(chars)
+        .map(|character| character.len_utf16() as u32)
+        .sum();
+    Position::new(line as u32, character)
+}
+
+pub(crate) fn position_to_byte(rope: &Rope, position: Position) -> usize {
+    let line = position.line as usize;
+    if line >= rope.len_lines() {
+        return rope.len_bytes();
+    }
+
+    let line_start = rope.line_to_byte(line);
+    let mut character = 0u32;
+    let mut byte = line_start;
+    for value in rope.line(line).chars() {
+        let width = value.len_utf16() as u32;
+        if character + width > position.character {
+            break;
+        }
+        character += width;
+        byte += value.len_utf8();
+    }
+    byte
+}
+
+fn utf16_length(rope: &Rope, start: usize, end: usize) -> u32 {
+    let start = start.min(rope.len_bytes());
+    let end = end.min(rope.len_bytes()).max(start);
+    rope.slice(rope.byte_to_char(start)..rope.byte_to_char(end))
+        .chars()
+        .map(|value| value.len_utf16() as u32)
+        .sum()
 }
 
 pub(crate) fn build_highlight_tokens(text: &str, rope: &Rope) -> Vec<SemanticToken> {
@@ -787,13 +806,13 @@ pub(crate) fn build_highlight_tokens(text: &str, rope: &Rope) -> Vec<SemanticTok
             let line_len = rope.line(line).len_bytes();
             let line_end = line_start + line_len;
             let seg_end = end.min(line_end);
-            let char_offset = cur.saturating_sub(line_start);
-            let length = seg_end.saturating_sub(cur);
+            let char_offset = byte_to_position(rope, cur).character;
+            let length = utf16_length(rope, cur, seg_end);
             if length > 0 {
                 incomplete_tokens.push((
                     line as u32,
-                    char_offset as u32,
-                    length as u32,
+                    char_offset,
+                    length,
                     token.token_type,
                     token.token_modifiers_bitset,
                 ));
@@ -956,6 +975,14 @@ module M {
         let rope = Rope::from_str(source);
         let ranges = build_folding_ranges(source, &rope);
         assert!(!ranges.is_empty());
+    }
+
+    #[test]
+    fn positions_use_utf16_columns() {
+        let rope = Rope::from_str("😀x");
+        let position = byte_to_position(&rope, "😀".len());
+        assert_eq!(position, Position::new(0, 2));
+        assert_eq!(position_to_byte(&rope, position), "😀".len());
     }
 
     #[test]

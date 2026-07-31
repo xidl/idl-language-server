@@ -28,6 +28,7 @@ const SCALAR_HTML: &str = include_str!(concat!(env!("OUT_DIR"), "/scalar.standal
 
 pub const CMD_START_HTTP_CLIENT: &str = "idl.httpClient.start";
 pub const CMD_STOP_HTTP_CLIENT: &str = "idl.httpClient.stop";
+pub const CMD_OPEN_HTTP_CLIENT: &str = "idl.httpClient.open";
 
 #[derive(Debug)]
 pub struct PreviewHandle {

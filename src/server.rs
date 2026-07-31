@@ -83,6 +83,7 @@ impl LanguageServer for Backend {
                         COMMAND_INSPECT_TYPEDAST.to_string(),
                         http_client::CMD_START_HTTP_CLIENT.to_string(),
                         http_client::CMD_STOP_HTTP_CLIENT.to_string(),
+                        http_client::CMD_OPEN_HTTP_CLIENT.to_string(),
                     ],
                     work_done_progress_options: WorkDoneProgressOptions::default(),
                 }),

@@ -190,15 +190,14 @@ pub const GOTO_QUERY: &str = include_str!("../queries/goto_symbols.scm");
 
 pub const DIAGNOSTIC_SOURCE: &str = "idl-language-server";
 
-pub const TITLE_START_HTTP_PREVIEW: &str = "$(play) Start HTTP API Preview";
-pub const TITLE_STOP_HTTP_PREVIEW: &str = "$(debug-stop) Stop HTTP API Preview";
-pub const TITLE_OPEN_HTTP_PREVIEW: &str = "$(link-external) Open HTTP API Preview";
-pub const TITLE_STOP_HTTP_CLIENT: &str = "$(debug-stop) Stop HTTP Preview";
+pub const TITLE_START_HTTP_PREVIEW: &str = "Start HTTP API Preview";
+pub const TITLE_STOP_HTTP_PREVIEW: &str = "Stop HTTP API Preview";
+pub const TITLE_OPEN_HTTP_PREVIEW: &str = "Open HTTP API Preview";
+pub const TITLE_STOP_HTTP_CLIENT: &str = "Stop HTTP Preview";
 
 pub const MSG_MISSING_DOCUMENT_URI: &str = "Missing document URI";
 pub const MSG_DOCUMENT_NOT_AVAILABLE: &str = "Document not available";
 
-pub const COMMAND_VSCODE_OPEN: &str = "vscode.open";
 pub const COMMAND_INSPECT_HIR: &str = "idl-language-server.inspect-hir";
 pub const COMMAND_INSPECT_TYPEDAST: &str = "idl-language-server.inspect-typedast";
 

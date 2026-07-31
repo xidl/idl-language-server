@@ -1,10 +1,11 @@
 use log::{debug, error, info, warn};
 use ropey::Rope;
+use std::time::Duration;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
 
 use crate::constants::{
-    COMMAND_INSPECT_HIR, COMMAND_INSPECT_TYPEDAST, COMMAND_VSCODE_OPEN, MSG_DOCUMENT_NOT_AVAILABLE,
+    COMMAND_INSPECT_HIR, COMMAND_INSPECT_TYPEDAST, MSG_DOCUMENT_NOT_AVAILABLE,
     MSG_MISSING_DOCUMENT_URI, TITLE_OPEN_HTTP_PREVIEW, TITLE_START_HTTP_PREVIEW,
     TITLE_STOP_HTTP_CLIENT, TITLE_STOP_HTTP_PREVIEW,
 };
@@ -12,10 +13,15 @@ use crate::context::AppContext;
 use crate::doc::{self, InspectTarget};
 use crate::http_client;
 
-pub(crate) async fn refresh_code_lens(ctx: &AppContext) {
-    if let Err(err) = ctx.client.code_lens_refresh().await {
-        warn!("failed to refresh code lens: {}", err);
-    }
+pub(crate) fn refresh_code_lens(ctx: &AppContext) {
+    let client = ctx.client.clone();
+    tokio::spawn(async move {
+        match tokio::time::timeout(Duration::from_secs(1), client.code_lens_refresh()).await {
+            Ok(Ok(())) => {}
+            Ok(Err(err)) => warn!("failed to refresh code lens: {}", err),
+            Err(_) => warn!("timed out refreshing code lens"),
+        }
+    });
 }
 
 pub(crate) fn merge_hover(base: Option<Hover>, extra: Option<String>) -> Option<Hover> {
@@ -220,7 +226,7 @@ pub(crate) async fn execute_command(
             match http_client::start_preview(&text).await {
                 Ok(preview) => {
                     ctx.preview_map.insert(uri, preview);
-                    refresh_code_lens(ctx).await;
+                    refresh_code_lens(ctx);
                 }
                 Err(err) => {
                     error!("failed to start http preview for {}: {:?}", uri, err);
@@ -237,7 +243,31 @@ pub(crate) async fn execute_command(
             if let Some((_, preview)) = ctx.preview_map.remove(&uri) {
                 info!("stopping http preview for {}", uri);
                 preview.stop();
-                refresh_code_lens(ctx).await;
+                refresh_code_lens(ctx);
+            }
+        }
+        http_client::CMD_OPEN_HTTP_CLIENT => {
+            let Some(scalar_url) = ctx
+                .preview_map
+                .get(&uri)
+                .map(|preview| preview.scalar_url.clone())
+            else {
+                return Ok(None);
+            };
+            let Ok(url) = Url::parse(&scalar_url) else {
+                error!("invalid HTTP preview URL: {}", scalar_url);
+                return Ok(None);
+            };
+            let params = ShowDocumentParams {
+                uri: url,
+                external: Some(true),
+                take_focus: Some(true),
+                selection: None,
+            };
+            match ctx.client.show_document(params).await {
+                Ok(true) => info!("opened HTTP preview through the client"),
+                Ok(false) => warn!("client declined to open HTTP preview"),
+                Err(err) => warn!("failed to open HTTP preview: {}", err),
             }
         }
         _ => {}
@@ -262,35 +292,31 @@ pub(crate) fn code_lens(ctx: &AppContext, uri: &Url) -> Option<Vec<CodeLens>> {
     let mut lenses: Vec<CodeLens> = Vec::new();
 
     if is_running {
-        if let Some(preview) = ctx.preview_map.get(uri.as_str()) {
-            for position in positions {
-                lenses.push(CodeLens {
-                    range: Range {
-                        start: position,
-                        end: position,
-                    },
-                    command: Some(Command {
-                        title: TITLE_OPEN_HTTP_PREVIEW.to_string(),
-                        command: COMMAND_VSCODE_OPEN.to_string(),
-                        arguments: Some(vec![serde_json::Value::String(
-                            preview.scalar_url.clone(),
-                        )]),
-                    }),
-                    data: None,
-                });
-                lenses.push(CodeLens {
-                    range: Range {
-                        start: position,
-                        end: position,
-                    },
-                    command: Some(Command {
-                        title: TITLE_STOP_HTTP_CLIENT.to_string(),
-                        command: http_client::CMD_STOP_HTTP_CLIENT.to_string(),
-                        arguments: Some(vec![serde_json::Value::String(uri.to_string())]),
-                    }),
-                    data: None,
-                });
-            }
+        for position in positions {
+            lenses.push(CodeLens {
+                range: Range {
+                    start: position,
+                    end: position,
+                },
+                command: Some(Command {
+                    title: TITLE_OPEN_HTTP_PREVIEW.to_string(),
+                    command: http_client::CMD_OPEN_HTTP_CLIENT.to_string(),
+                    arguments: Some(vec![serde_json::Value::String(uri.to_string())]),
+                }),
+                data: None,
+            });
+            lenses.push(CodeLens {
+                range: Range {
+                    start: position,
+                    end: position,
+                },
+                command: Some(Command {
+                    title: TITLE_STOP_HTTP_CLIENT.to_string(),
+                    command: http_client::CMD_STOP_HTTP_CLIENT.to_string(),
+                    arguments: Some(vec![serde_json::Value::String(uri.to_string())]),
+                }),
+                data: None,
+            });
         }
     } else {
         for position in positions {

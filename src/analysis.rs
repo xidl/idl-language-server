@@ -425,18 +425,18 @@ pub(crate) fn reference_locations(
     symbols: &[GotoSymbol],
     uri: &Url,
     position: Position,
+    include_declaration: bool,
 ) -> Vec<Location> {
     let symbol = match symbol_at_position(symbols, position) {
         Some(symbol) => symbol,
         None => return Vec::new(),
     };
-    if symbol.kind != GotoSymbolKind::Definition {
-        return Vec::new();
-    }
     symbols
         .iter()
         .filter(|candidate| {
-            candidate.kind == GotoSymbolKind::Declaration && candidate.name == symbol.name
+            candidate.name == symbol.name
+                && (candidate.kind == GotoSymbolKind::Declaration
+                    || (include_declaration && candidate.kind == GotoSymbolKind::Definition))
         })
         .map(|candidate| Location {
             uri: uri.clone(),
@@ -1011,7 +1011,7 @@ interface Bar {
     }
 
     #[test]
-    fn references_resolve_from_definition_only() {
+    fn references_resolve_from_definition_or_reference() {
         let source = r#"
 struct Foo {
     long value;
@@ -1031,8 +1031,23 @@ interface Bar {
             &symbols,
             &Url::parse("file:///test.idl").unwrap(),
             def.selection_range.start,
+            true,
         );
         assert!(!locations.is_empty());
+
+        let reference = symbols
+            .iter()
+            .find(|symbol| symbol.kind == GotoSymbolKind::Declaration && symbol.name == "Foo")
+            .expect("reference not found");
+        assert!(
+            !reference_locations(
+                &symbols,
+                &Url::parse("file:///test.idl").unwrap(),
+                reference.selection_range.start,
+                true,
+            )
+            .is_empty()
+        );
     }
 
     #[test]

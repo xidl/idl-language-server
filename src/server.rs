@@ -266,7 +266,8 @@ impl LanguageServer for Backend {
         };
         let text = rope.to_string();
         let symbols = build_goto_symbols(&text, &rope);
-        let locations = reference_locations(&symbols, &uri, position);
+        let locations =
+            reference_locations(&symbols, &uri, position, params.context.include_declaration);
         if locations.is_empty() {
             Ok(None)
         } else {

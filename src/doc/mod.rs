@@ -143,11 +143,20 @@ fn hover_template_at_position(
                 Some(name) => *name,
                 None => continue,
             };
+            if capture_name != "annotation" {
+                continue;
+            }
             let range = node_range(capture.node, rope);
             if !position_in_range(position, range) {
                 continue;
             }
-            let name = capture_name.trim_start_matches('@').to_string();
+            let raw = capture.node.utf8_text(text.as_bytes()).ok()?.trim();
+            let name = raw
+                .trim_start_matches('@')
+                .split(|character: char| character == '(' || character.is_whitespace())
+                .next()
+                .unwrap_or("")
+                .to_ascii_lowercase();
             if name.is_empty() {
                 continue;
             }
@@ -155,6 +164,9 @@ fn hover_template_at_position(
                 continue;
             }
             let template_path = format!("{name}.md");
+            if load_hover_template(&template_path).is_none() {
+                continue;
+            }
             return Some((name, template_path));
         }
     }
@@ -205,4 +217,22 @@ fn find_reference_locations(
             })
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::hover_template_at_position;
+    use ropey::Rope;
+    use tower_lsp::lsp_types::Position;
+
+    #[test]
+    fn hover_template_matches_get_annotation() {
+        let text = "@get(path = \"/users\")\ninterface UserService { any users(); };";
+        let rope = Rope::from_str(text);
+
+        assert_eq!(
+            hover_template_at_position(text, &rope, Position::new(0, 2)),
+            Some(("get".to_string(), "get.md".to_string()))
+        );
+    }
 }

@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.32.0](https://github.com/xidl/idl-language-server/compare/v0.31.1...v0.32.0) (2026-07-31)
+
+
+### Features
+
+* **lsp:** add basic idl completions ([3416c19](https://github.com/xidl/idl-language-server/commit/3416c1930f25bd1c653703edf1360adabc5d9823))
+* **lsp:** extend folding ranges ([626b4de](https://github.com/xidl/idl-language-server/commit/626b4deec7af5da469f2b55a016d62dfaa328008))
+* **zed:** integrate idl language server ([a2ccf50](https://github.com/xidl/idl-language-server/commit/a2ccf50d9ceab7f1be59295fa4e3537d6f5b3384))
+
+
+### Bug Fixes
+
+* **lsp:** resolve hover docs for parameterized annotations ([45b8f8f](https://github.com/xidl/idl-language-server/commit/45b8f8fe7ee7e52ccb44ac75d4f84eb48daf03dd))
+* **lsp:** resolve references from usages ([26322f9](https://github.com/xidl/idl-language-server/commit/26322f9df7f475c6350fe94dc0bc4d9ae43ab8e0))
+* **lsp:** use portable http preview commands ([19f506d](https://github.com/xidl/idl-language-server/commit/19f506d55512bbad6a86016b9814eee95e622706))
+* **lsp:** use utf-16 document positions ([062ba53](https://github.com/xidl/idl-language-server/commit/062ba5340eca6661337e7d47675d4ce30c6f32c1))
+
 ## [0.31.1](https://github.com/xidl/idl-language-server/compare/v0.31.0...v0.31.1) (2026-07-10)
 
 

@@ -10,6 +10,7 @@ use crate::analysis::{
     build_document_symbols, build_folding_ranges, build_goto_symbols, goto_declaration_locations,
     goto_definition_locations, reference_locations, rename_workspace_edit,
 };
+use crate::completion::completion;
 use crate::constants::{
     COMMAND_INSPECT_HIR, COMMAND_INSPECT_TYPEDAST, LANGUAGE_ID, semantic_token_modifiers,
     semantic_token_types,
@@ -54,7 +55,10 @@ impl LanguageServer for Backend {
                         ..Default::default()
                     },
                 )),
-                completion_provider: None,
+                completion_provider: Some(CompletionOptions {
+                    resolve_provider: Some(false),
+                    ..CompletionOptions::default()
+                }),
                 workspace: None,
                 document_symbol_provider: Some(OneOf::Left(true)),
                 definition_provider: Some(OneOf::Left(true)),
@@ -177,6 +181,10 @@ impl LanguageServer for Backend {
         let uri = params.text_document.uri.to_string();
         debug!("formatting request for {}", uri);
         Ok(format_text(&self.ctx, params))
+    }
+
+    async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
+        Ok(completion(&self.ctx, params))
     }
 
     async fn document_symbol(

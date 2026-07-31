@@ -1,4 +1,5 @@
 mod analysis;
+mod completion;
 mod constants;
 mod context;
 mod doc;

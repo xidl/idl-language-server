@@ -638,7 +638,7 @@ fn closest_type_match<'a>(name: &str, defined_types: &'a HashSet<String>) -> Opt
     best_match.map(|(candidate, _)| candidate)
 }
 
-fn builtin_types() -> &'static [&'static str] {
+pub(crate) fn builtin_types() -> &'static [&'static str] {
     &[
         "short",
         "int16",

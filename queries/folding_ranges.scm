@@ -1,2 +1,11 @@
 (interface_def) @fold
 (module_dcl) @fold
+(struct_def) @fold
+(enum_dcl) @fold
+(union_def) @fold
+(bitmask_dcl) @fold
+(bitset_dcl) @fold
+(annotation_dcl) @fold
+(except_dcl) @fold
+(component_dcl) @fold
+(connector_dcl) @fold

@@ -6,7 +6,8 @@ editor.
 ## Features
 
 - Syntax Highlighting (via `tree-sitter-idl`)
-- Code Navigation, Autocompletion, Diagnostics (via `idl-language-server`)
+- Diagnostics, Formatting, Hover, Folding, Document Symbols, Completions,
+  Semantic Tokens, and Code Navigation (via `idl-language-server`)
 
 ## Installation
 

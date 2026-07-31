@@ -17,27 +17,62 @@ impl zed::Extension for IdlExtension {
         language_server_id: &zed::LanguageServerId,
         worktree: &zed::Worktree,
     ) -> Result<zed::Command> {
-        if let Some(path) = worktree.which("idl-language-server") {
-            return Ok(zed::Command {
-                command: path,
-                args: vec![],
-                env: Default::default(),
-            });
-        }
+        let settings = zed::settings::LspSettings::for_worktree(LANGUAGE_SERVER_NAME, worktree)?;
+        let (configured_path, args) = settings
+            .binary
+            .map(|binary| {
+                (binary.path, binary.arguments.unwrap_or_default())
+            })
+            .unwrap_or_default();
 
-        let path = self.language_server_binary_path(language_server_id)?;
+        let command = if let Some(path) = configured_path {
+            path
+        } else if let Some(path) = worktree.which(LANGUAGE_SERVER_NAME) {
+            path
+        } else {
+            self.language_server_binary_path(language_server_id)?
+        };
+
         Ok(zed::Command {
-            command: path,
-            args: vec![],
-            env: Default::default(),
+            command,
+            args,
+            env: worktree.shell_env(),
         })
+    }
+
+    fn language_server_initialization_options(
+        &mut self,
+        _language_server_id: &zed::LanguageServerId,
+        worktree: &zed::Worktree,
+    ) -> Result<Option<zed::serde_json::Value>> {
+        Ok(
+            zed::settings::LspSettings::for_worktree(LANGUAGE_SERVER_NAME, worktree)?
+                .initialization_options,
+        )
+    }
+
+    fn language_server_workspace_configuration(
+        &mut self,
+        _language_server_id: &zed::LanguageServerId,
+        worktree: &zed::Worktree,
+    ) -> Result<Option<zed::serde_json::Value>> {
+        Ok(zed::settings::LspSettings::for_worktree(
+            LANGUAGE_SERVER_NAME,
+            worktree,
+        )?
+        .settings)
     }
 }
 
+const LANGUAGE_SERVER_NAME: &str = "idl-language-server";
+
 impl IdlExtension {
-    fn language_server_binary_path(&mut self, language_server_id: &zed::LanguageServerId) -> Result<String> {
+    fn language_server_binary_path(
+        &mut self,
+        language_server_id: &zed::LanguageServerId,
+    ) -> Result<String> {
         if let Some(path) = &self.cached_binary_path {
-            if fs::metadata(path).map_or(false, |stat| stat.is_file()) {
+            if fs::metadata(path).is_ok_and(|stat| stat.is_file()) {
                 return Ok(path.clone());
             }
         }
@@ -57,9 +92,15 @@ impl IdlExtension {
 
         let (os, arch) = zed::current_platform();
         let asset_name = match (os, arch) {
-            (zed::Os::Mac, zed::Architecture::Aarch64) => "idl-language-server-aarch64-apple-darwin.tar.gz",
-            (zed::Os::Linux, zed::Architecture::X8664) => "idl-language-server-x86_64-unknown-linux-musl.tar.gz",
-            (zed::Os::Windows, zed::Architecture::X8664) => "idl-language-server-x86_64-pc-windows-gnu.tar.gz",
+            (zed::Os::Mac, zed::Architecture::Aarch64) => {
+                "idl-language-server-aarch64-apple-darwin.tar.gz"
+            }
+            (zed::Os::Linux, zed::Architecture::X8664) => {
+                "idl-language-server-x86_64-unknown-linux-musl.tar.gz"
+            }
+            (zed::Os::Windows, zed::Architecture::X8664) => {
+                "idl-language-server-x86_64-pc-windows-gnu.tar.gz"
+            }
             _ => return Err(format!("unsupported platform: {:?} {:?}", os, arch)),
         };
 
@@ -72,7 +113,7 @@ impl IdlExtension {
         let version_dir = format!("idl-language-server-{}", release.version);
         let binary_path = format!("{}/idl-language-server", version_dir);
 
-        if !fs::metadata(&binary_path).map_or(false, |stat| stat.is_file()) {
+        if !fs::metadata(&binary_path).is_ok_and(|stat| stat.is_file()) {
             zed::set_language_server_installation_status(
                 language_server_id,
                 &zed::LanguageServerInstallationStatus::Downloading,

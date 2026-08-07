@@ -1729,9 +1729,9 @@ dependencies = [
 
 [[package]]
 name = "xidl-parser"
-version = "0.86.0"
+version = "0.86.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6f9ae2ecf31ca8eed3483c7fb789eaeb865f21792c220c1fc359b942713da2ea"
+checksum = "04b9bafbe9c72aa5e69608887690a1fbfb3df50c0c7750f35a8380ac0235f28b"
 dependencies = [
  "convert_case",
  "include_dir",
@@ -1748,9 +1748,9 @@ dependencies = [
 
 [[package]]
 name = "xidl-parser-derive"
-version = "0.86.0"
+version = "0.86.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "963a36f590c8b532832d75d09239445db1b704377271dd6265f9e1b105d25046"
+checksum = "e04c286ce6f5847aeee1e46d83803f1f82a744d79d089a68299025ce0313132c"
 dependencies = [
  "convert_case",
  "darling",

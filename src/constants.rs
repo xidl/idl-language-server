@@ -187,6 +187,7 @@ pub const DOCUMENT_SYMBOL_QUERY: &str = include_str!("../queries/document_symbol
 pub const DIAGNOSTICS_QUERY: &str = include_str!("../queries/diagnostics.scm");
 pub const FOLDING_QUERY: &str = include_str!("../queries/folding_ranges.scm");
 pub const GOTO_QUERY: &str = include_str!("../queries/goto_symbols.scm");
+pub const HIGHLIGHTS_QUERY: &str = include_str!("../queries/highlights.scm");
 
 pub const DIAGNOSTIC_SOURCE: &str = "idl-language-server";
 

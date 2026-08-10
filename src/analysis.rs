@@ -8,7 +8,7 @@ use tree_sitter_highlight::{HighlightConfiguration, HighlightEvent, Highlighter}
 
 use crate::constants::{
     DIAGNOSTIC_SOURCE, DIAGNOSTICS_QUERY, DOCUMENT_SYMBOL_QUERY, FOLDING_QUERY, GOTO_QUERY,
-    HIGHLIGHT_NAMES, capture_to_semantic_token,
+    HIGHLIGHT_NAMES, HIGHLIGHTS_QUERY, capture_to_semantic_token,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
@@ -731,7 +731,7 @@ pub(crate) fn build_highlight_tokens(text: &str, rope: &Rope) -> Vec<SemanticTok
     let mut config = match HighlightConfiguration::new(
         tree_sitter_idl::language(),
         "idl",
-        tree_sitter_idl::HIGHLIGHTS_QUERY,
+        HIGHLIGHTS_QUERY,
         "",
         "",
     ) {
@@ -1101,5 +1101,66 @@ interface Bar {
             .render(ctx)
             .expect("render failed");
         assert!(rendered.contains("XIDL HTTP mapping"));
+    }
+    #[test]
+    fn highlight_tokens_include_line_and_block_comments() {
+        let source = "// line comment\n/* block comment */\ninterface A {\n  void m();\n};\n";
+        let rope = Rope::from_str(source);
+        let tokens = build_highlight_tokens(source, &rope);
+
+        assert!(!tokens.is_empty(), "expected semantic tokens");
+
+        // Decode the relative semantic tokens back to absolute positions.
+        let mut decoded: Vec<(u32, u32, u32, u32)> = Vec::new();
+        let mut line = 0u32;
+        let mut start = 0u32;
+        for token in &tokens {
+            line += token.delta_line;
+            if token.delta_line == 0 {
+                start += token.delta_start;
+            } else {
+                start = token.delta_start;
+            }
+            decoded.push((line, start, token.length, token.token_type));
+        }
+
+        let comment_type = crate::constants::SEMANTIC_TOKEN_TYPES
+            .iter()
+            .position(|name| *name == "comment")
+            .expect("comment token type") as u32;
+
+        // Comment spans: line 0 `// line comment`, line 1 `/* block comment */`.
+        let comment_spans = [(0u32, 0u32, 15u32), (1u32, 0u32, 19u32)];
+        for (span_line, span_start, span_len) in comment_spans {
+            let span_end = span_start + span_len;
+            let mut covered = 0u32;
+            for &(tok_line, tok_start, tok_len, tok_type) in &decoded {
+                if tok_line != span_line {
+                    continue;
+                }
+                let tok_end = tok_start + tok_len;
+                let overlap_start = tok_start.max(span_start);
+                let overlap_end = tok_end.min(span_end);
+                if overlap_start < overlap_end {
+                    assert_eq!(
+                        tok_type, comment_type,
+                        "non-comment token overlaps comment span on line {span_line}"
+                    );
+                    covered += overlap_end - overlap_start;
+                }
+            }
+            assert_eq!(
+                covered, span_len,
+                "comment span on line {span_line} not fully highlighted"
+            );
+        }
+
+        // Non-comment tokens must still be produced (keyword/type/punctuation).
+        assert!(
+            decoded
+                .iter()
+                .any(|&(_, _, _, tok_type)| tok_type != comment_type),
+            "expected non-comment tokens too"
+        );
     }
 }

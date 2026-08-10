@@ -19,12 +19,12 @@ thiserror = "2.0.3"
 tree-sitter = "0.25.0"
 tree-sitter-highlight = "0.25.0"
 tree-sitter-idl = "3.18.0"
-xidlc = { version = "0.86.0", default-features = false, features = [
+xidlc = { version = "0.87.0", default-features = false, features = [
   "gen-rust",
   "gen-rust-axum",
   "gen-openapi",
 ] }
-xidl-parser = "0.86.0"
+xidl-parser = "0.87.0"
 rust-embed = "8.4.0"
 minijinja = "2.20.0"
 axum = "0.8.9"

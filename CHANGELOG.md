@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.34.0](https://github.com/xidl/idl-language-server/compare/v0.33.0...v0.34.0) (2026-08-10)
+
+
+### Features
+
+* bump serde from 1.0.228 to 1.0.229 ([#139](https://github.com/xidl/idl-language-server/issues/139)) ([ef59ae9](https://github.com/xidl/idl-language-server/commit/ef59ae9104ce6229f8333f4fd9048f7d61b3852f))
+
+
+### Bug Fixes
+
+* **release:** fix release ([396c794](https://github.com/xidl/idl-language-server/commit/396c79424f4e38543ffc254b0f8fed55950eb717))
+
 ## [0.33.0](https://github.com/xidl/idl-language-server/compare/v0.32.0...v0.33.0) (2026-08-10)
 
 

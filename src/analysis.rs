@@ -7,8 +7,8 @@ use tree_sitter::{Node, Parser, Query, QueryCursor, StreamingIterator};
 use tree_sitter_highlight::{HighlightConfiguration, HighlightEvent, Highlighter};
 
 use crate::constants::{
-    DIAGNOSTIC_SOURCE, DIAGNOSTICS_QUERY, DOCUMENT_SYMBOL_QUERY, FOLDING_QUERY, GOTO_QUERY,
-    HIGHLIGHT_NAMES, HIGHLIGHTS_QUERY, capture_to_semantic_token,
+    COMPLETION_QUERY, DIAGNOSTIC_SOURCE, DIAGNOSTICS_QUERY, DOCUMENT_SYMBOL_QUERY, FOLDING_QUERY,
+    GOTO_QUERY, HIGHLIGHT_NAMES, HIGHLIGHTS_QUERY, capture_to_semantic_token,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
@@ -674,6 +674,147 @@ pub(crate) fn builtin_types() -> &'static [&'static str] {
 
 fn is_builtin_type(name: &str) -> bool {
     builtin_types().contains(&name)
+}
+
+/// Built-in XIDL annotations, derived from the tree-sitter-idl
+/// `annotation_appl_*` rules and xidl-parser's builtin annotation list.
+pub(crate) fn builtin_annotations() -> &'static [&'static str] {
+    &[
+        "id",
+        "autoid",
+        "optional",
+        "position",
+        "value",
+        "extensibility",
+        "final",
+        "appendable",
+        "mutable",
+        "key",
+        "must_understand",
+        "default_literal",
+        "default",
+        "range",
+        "min",
+        "max",
+        "unit",
+        "bit_bound",
+        "external",
+        "nested",
+        "verbatim",
+        "service",
+        "oneway",
+        "ami",
+        "hashid",
+        "default_nested",
+        "ignore_literal_names",
+        "try_construct",
+        "non_serialized",
+        "data_representation",
+        "topic",
+        "Choice",
+        "Empty",
+        "DDSService",
+        "DDSRequestTopic",
+        "DDSReplyTopic",
+    ]
+}
+
+/// Built-in `#pragma xidlc` directives as `(label, snippet body)` pairs.
+///
+/// The label is what completion inserts or matches against; the snippet body
+/// carries the argument placeholders used when the client supports snippets.
+pub(crate) fn builtin_pragmas() -> &'static [(&'static str, &'static str)] {
+    &[
+        ("#pragma xidlc package", "#pragma xidlc package ${1:name}"),
+        (
+            "#pragma xidlc version",
+            "#pragma xidlc version ${1:version}",
+        ),
+        (
+            "#pragma xidlc service",
+            "#pragma xidlc service ${1:url} ${2:description}",
+        ),
+        (
+            "#pragma xidlc openapi version",
+            "#pragma xidlc openapi version ${1:version}",
+        ),
+        (
+            "#pragma xidlc openapi service",
+            "#pragma xidlc openapi service ${1:url} ${2:description}",
+        ),
+    ]
+}
+
+/// User-defined compound types and custom annotations declared in `text`.
+#[derive(Debug, Default, Eq, PartialEq)]
+pub(crate) struct CompletionSymbols {
+    pub(crate) types: Vec<String>,
+    pub(crate) annotations: Vec<String>,
+}
+
+/// Collects custom type and annotation names from the document so completion
+/// can offer them alongside the built-ins. Type names come from definition and
+/// forward-declaration nodes; custom annotation names come from `@annotation`
+/// declarations and any `@ScopedName` usages in the file.
+pub(crate) fn collect_completion_symbols(text: &str) -> CompletionSymbols {
+    let mut parser = Parser::new();
+    if parser.set_language(&tree_sitter_idl::language()).is_err() {
+        debug!("failed to set tree-sitter language for completion symbols");
+        return CompletionSymbols::default();
+    }
+    let tree = match parser.parse(text, None) {
+        Some(tree) => tree,
+        None => {
+            debug!("failed to parse document for completion symbols");
+            return CompletionSymbols::default();
+        }
+    };
+
+    let query = match Query::new(&tree_sitter_idl::language(), COMPLETION_QUERY) {
+        Ok(query) => query,
+        Err(err) => {
+            debug!("failed to compile completion query: {err}");
+            return CompletionSymbols::default();
+        }
+    };
+
+    let mut cursor = QueryCursor::new();
+    let capture_names = query.capture_names();
+    let mut symbols = CompletionSymbols::default();
+    let mut seen_types = HashSet::new();
+    let mut seen_annotations = HashSet::new();
+
+    let mut matches = cursor.matches(&query, tree.root_node(), text.as_bytes());
+    while let Some(m) = matches.next() {
+        for capture in m.captures {
+            let capture_name = match capture_names.get(capture.index as usize) {
+                Some(name) => *name,
+                None => continue,
+            };
+            let Ok(name) = capture.node.utf8_text(text.as_bytes()) else {
+                continue;
+            };
+            let name = name.trim();
+            if name.is_empty() {
+                continue;
+            }
+            match capture_name {
+                "type.name" => {
+                    if seen_types.insert(name.to_string()) {
+                        symbols.types.push(name.to_string());
+                    }
+                }
+                "annotation.name" => {
+                    if seen_annotations.insert(name.to_string()) {
+                        symbols.annotations.push(name.to_string());
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    symbols
 }
 
 pub(crate) fn node_range(node: Node<'_>, rope: &Rope) -> Range {

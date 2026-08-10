@@ -146,15 +146,21 @@ mod tests {
     }
 
     #[test]
-    fn pragma_builtins_are_embedded() {
+    fn pragma_completions_come_from_builtins_not_snippets() {
+        // Pragma directives are built into the language server so they are
+        // available even without client snippet support; the embedded snippet
+        // folder must not duplicate them.
         let snippets = all();
-        for prefix in ["#pragma package", "#pragma version", "#pragma service"] {
-            assert!(
-                snippets
-                    .iter()
-                    .any(|snippet| snippet.prefixes.iter().any(|candidate| candidate == prefix)),
-                "missing builtin snippet {prefix}"
-            );
+        assert!(
+            snippets.iter().all(|snippet| !snippet
+                .prefixes
+                .iter()
+                .any(|candidate| candidate.starts_with('#'))),
+            "pragma snippets should be code-driven, not embedded"
+        );
+        for (label, body) in crate::analysis::builtin_pragmas() {
+            assert!(label.starts_with("#pragma xidlc"));
+            assert!(body.contains("${"));
         }
     }
 

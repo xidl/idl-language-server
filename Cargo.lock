@@ -1066,9 +1066,9 @@ checksum = "d767eb0aabc880b29956c35734170f26ed551a859dbd361d140cdbeca61ab1e2"
 
 [[package]]
 name = "serde"
-version = "1.0.228"
+version = "1.0.229"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a8e94ea7f378bd32cbbd37198a4a91436180c5bb472411e48b5ec2e2124ae9e"
+checksum = "4148590afebada386688f18773da617792bf2ef03ffc1e4cbd2b1d45b023e0ba"
 dependencies = [
  "serde_core",
  "serde_derive",
@@ -1076,22 +1076,22 @@ dependencies = [
 
 [[package]]
 name = "serde_core"
-version = "1.0.228"
+version = "1.0.229"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "41d385c7d4ca58e59fc732af25c3983b67ac852c1a25000afe1175de458b67ad"
+checksum = "67dca2c9c51e58a4791a4b1ed58308b39c64224d349a935ab5039aa360942a48"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.228"
+version = "1.0.229"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d540f220d3187173da220f885ab66608367b6574e925011a9353e4badda91d79"
+checksum = "e7a5d71263a5a7d47b41f6b3f06ba276f10cc18b0931f1799f710578e2309348"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.117",
+ "syn 3.0.2",
 ]
 
 [[package]]
@@ -1712,9 +1712,9 @@ checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
 
 [[package]]
 name = "xidl-jsonrpc"
-version = "0.86.0"
+version = "0.87.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "16b5581f5b4d8989e613a0d52279fd9f6134630a681482b1435aac9bf84d691f"
+checksum = "57593cf31dcb39fca5400ca39a9197c8eddd875f194de72b8b7b42e5c56048e9"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -1729,9 +1729,9 @@ dependencies = [
 
 [[package]]
 name = "xidl-parser"
-version = "0.86.1"
+version = "0.87.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "04b9bafbe9c72aa5e69608887690a1fbfb3df50c0c7750f35a8380ac0235f28b"
+checksum = "84872777b38e652edb66951931f7f3d3c251ac47cf6fc19d840ed4474cc1d2f8"
 dependencies = [
  "convert_case",
  "include_dir",
@@ -1748,9 +1748,9 @@ dependencies = [
 
 [[package]]
 name = "xidl-parser-derive"
-version = "0.86.1"
+version = "0.87.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e04c286ce6f5847aeee1e46d83803f1f82a744d79d089a68299025ce0313132c"
+checksum = "c5e30f5f1c28bbf4d0cdb271507ea92f03397437f57eb36f3b09b0ffb1881257"
 dependencies = [
  "convert_case",
  "darling",
@@ -1762,9 +1762,9 @@ dependencies = [
 
 [[package]]
 name = "xidlc"
-version = "0.86.0"
+version = "0.87.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4585618c78658a1f6d6f52f20546f5f31bd9cd35fe648a50d109d024b99630fd"
+checksum = "22d06e3771b6a9777baa6aff68b7ae10699599868cbcaf3bb9b0f6f9099ccdc1"
 dependencies = [
  "async-trait",
  "convert_case",

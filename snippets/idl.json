@@ -1,0 +1,121 @@
+{
+  "module": {
+    "prefix": "module",
+    "body": [
+      "module ${1:name} {",
+      "\t$0",
+      "};"
+    ],
+    "description": "Define a module"
+  },
+  "interface": {
+    "prefix": "interface",
+    "body": [
+      "interface ${1:Name} {",
+      "\t$0",
+      "};"
+    ],
+    "description": "Define an interface"
+  },
+  "struct": {
+    "prefix": "struct",
+    "body": [
+      "struct ${1:Name} {",
+      "\t${2:type} ${3:member};",
+      "\t$0",
+      "};"
+    ],
+    "description": "Define a struct"
+  },
+  "union": {
+    "prefix": "union",
+    "body": [
+      "union ${1:Name} switch (${2:type}) {",
+      "\tcase ${3:label}:",
+      "\t\t${4:type} ${5:name};",
+      "\t$0",
+      "};"
+    ],
+    "description": "Define a union"
+  },
+  "enum": {
+    "prefix": "enum",
+    "body": [
+      "enum ${1:Name} {",
+      "\t${2:VALUE}",
+      "\t$0",
+      "};"
+    ],
+    "description": "Define an enum"
+  },
+  "bitmask": {
+    "prefix": "bitmask",
+    "body": [
+      "bitmask ${1:Name} {",
+      "\t${2:VALUE}",
+      "\t$0",
+      "};"
+    ],
+    "description": "Define a bitmask"
+  },
+  "bitset": {
+    "prefix": "bitset",
+    "body": [
+      "bitset ${1:Name} {",
+      "\t${2:bitfield};",
+      "\t$0",
+      "};"
+    ],
+    "description": "Define a bitset"
+  },
+  "exception": {
+    "prefix": "exception",
+    "body": [
+      "exception ${1:Name} {",
+      "\t${2:type} ${3:member};",
+      "\t$0",
+      "};"
+    ],
+    "description": "Define an exception"
+  },
+  "annotation": {
+    "prefix": "annotation",
+    "body": [
+      "annotation ${1:Name} {",
+      "\t${2:type} ${3:member};",
+      "\t$0",
+      "};"
+    ],
+    "description": "Define an annotation"
+  },
+  "typedef": {
+    "prefix": "typedef",
+    "body": "typedef ${1:type} ${2:Name};",
+    "description": "Define a type alias"
+  },
+  "const": {
+    "prefix": "const",
+    "body": "const ${1:type} ${2:name} = ${3:value};",
+    "description": "Define a constant"
+  },
+  "import": {
+    "prefix": "import",
+    "body": "import \"${1:module}\";",
+    "description": "Import a module"
+  },
+  "method": {
+    "prefix": "method",
+    "body": "${1:ReturnType} ${2:name}(${3:params});",
+    "description": "Define an operation"
+  },
+  "param": {
+    "prefix": "param",
+    "body": "in ${1:type} ${2:name}",
+    "description": "Define a parameter"
+  },
+  "raises": {
+    "prefix": "raises",
+    "body": "raises (${1:Exception})",
+    "description": "Declare raised exceptions"
+  }
+}

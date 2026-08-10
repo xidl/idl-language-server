@@ -7,6 +7,7 @@ mod documents;
 mod handlers;
 mod http_client;
 mod server;
+mod snippets;
 
 #[tokio::main]
 async fn main() {

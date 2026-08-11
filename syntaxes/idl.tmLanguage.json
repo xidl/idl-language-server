@@ -3,328 +3,501 @@
   "name": "IDL",
   "scopeName": "source.idl",
   "patterns": [
-    {
-      "include": "#preprocessor"
-    },
-    {
-      "include": "#extended-annotations"
-    },
-    {
-      "include": "#comments"
-    },
-    {
-      "include": "#strings"
-    },
-    {
-      "include": "#characters"
-    },
-    {
-      "include": "#numbers"
-    },
-    {
-      "include": "#booleans"
-    },
-    {
-      "include": "#declarations"
-    },
-    {
-      "include": "#keywords"
-    },
-    {
-      "include": "#builtin-types"
-    },
-    {
-      "include": "#constants"
-    },
-    {
-      "include": "#attributes"
-    },
-    {
-      "include": "#functions"
-    },
-    {
-      "include": "#member-names"
-    },
-    {
-      "include": "#operators"
-    },
-    {
-      "include": "#punctuation"
-    }
+    { "include": "#comments" },
+    { "include": "#preprocessor" },
+    { "include": "#attributes" },
+    { "include": "#strings-and-chars" },
+    { "include": "#numbers-and-constants" },
+    { "include": "#declarations" },
+    { "include": "#keywords" },
+    { "include": "#types-and-paths" },
+    { "include": "#functions-and-members" },
+    { "include": "#operators-and-punctuation" }
   ],
   "repository": {
-    "preprocessor": {
+    "comments": {
       "patterns": [
         {
-          "begin": "^\\s*(#\\s*include)\\b",
-          "beginCaptures": {
-            "1": {
-              "name": "keyword.directive.idl"
-            }
-          },
-          "end": "$",
-          "patterns": [
-            {
-              "match": "\"[^\"]*\"",
-              "name": "string.quoted.other.idl"
-            },
-            {
-              "match": "<[^>]*>",
-              "name": "string.quoted.other.idl"
-            },
-            {
-              "match": "[a-zA-Z_][a-zA-Z0-9_./]*",
-              "name": "string.quoted.other.idl"
-            }
-          ]
+          "name": "comment.line.documentation.idl",
+          "match": "\\s*(?:///|//!).*$"
         },
         {
-          "match": "^\\s*(#\\s*[a-zA-Z0-9_]+)",
-          "captures": {
-            "1": {
-              "name": "keyword.directive.idl"
-            }
+          "name": "comment.line.double-slash.idl",
+          "match": "\\s*//(?!@).*$"
+        },
+        {
+          "name": "comment.block.idl",
+          "begin": "/\\*",
+          "beginCaptures": {
+            "0": { "name": "punctuation.definition.comment.begin.idl" }
+          },
+          "end": "\\*/",
+          "endCaptures": {
+            "0": { "name": "punctuation.definition.comment.end.idl" }
           }
         }
       ]
     },
-    "extended-annotations": {
-      "match": "//@[^\\n]*",
-      "name": "meta.attribute.idl"
-    },
-    "comments": {
+    "preprocessor": {
       "patterns": [
         {
-          "match": "//.*$",
-          "name": "comment.line.double-slash.idl"
+          "name": "meta.preprocessor.define.idl",
+          "match": "^(\\s*)(#\\s*define)\\b\\s+([A-Za-z_][A-Za-z0-9_]*)(?:\\s+(.*))?$",
+          "captures": {
+            "2": { "name": "keyword.control.directive.define.idl" },
+            "3": { "name": "entity.name.constant.preprocessor.idl" },
+            "4": { "name": "constant.other.preprocessor.argument.idl" }
+          }
         },
         {
-          "begin": "/\\*",
-          "end": "\\*/",
-          "name": "comment.block.idl"
+          "name": "meta.preprocessor.include.idl",
+          "begin": "^(\\s*)(#\\s*include)\\b",
+          "beginCaptures": {
+            "2": { "name": "keyword.control.directive.include.idl" }
+          },
+          "end": "$",
+          "patterns": [
+            { "include": "#system-include" },
+            { "include": "#strings-and-chars" },
+            {
+              "name": "entity.name.filename.idl",
+              "match": "\\b[A-Za-z_][A-Za-z0-9_./-]*\\b"
+            }
+          ]
+        },
+        {
+          "name": "meta.preprocessor.idl",
+          "match": "^(\\s*)(#\\s*[A-Za-z_][A-Za-z0-9_]*)\\b(?:\\s+(.*))?$",
+          "captures": {
+            "2": { "name": "keyword.control.directive.idl" },
+            "3": { "name": "constant.other.preprocessor.argument.idl" }
+          }
         }
       ]
     },
-    "strings": {
+    "attributes": {
       "patterns": [
         {
-          "begin": "L?\"",
+          "name": "meta.annotation.builtin.idl",
+          "begin": "(^|\\s)(//@|@)(?i:(id|autoid|optional|position|value|extensibility|final|appendable|mutable|key|must_understand|default_literal|default|range|min|max|unit|bit_bound|external|nested|verbatim|service|oneway|ami|ignore_literal_names|try_construct|data_representation|topic|choice|empty|ddsservice|ddsrequesttopic|ddsreplytopic))\\b",
           "beginCaptures": {
-            "0": {
-              "name": "punctuation.definition.string.begin.idl"
+            "2": { "name": "punctuation.definition.annotation.idl" },
+            "3": { "name": "support.type.annotation.builtin.idl" }
+          },
+          "end": "(?=;|\\{|$)",
+          "patterns": [
+            { "include": "#comments" },
+            { "include": "#strings-and-chars" },
+            { "include": "#numbers-and-constants" },
+            { "include": "#types-and-paths" },
+            {
+              "name": "variable.parameter.attribute.idl",
+              "match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\b(?=\\s*=)",
+              "captures": {
+                "1": { "name": "variable.parameter.attribute.idl" }
+              }
+            },
+            {
+              "name": "constant.language.annotation-kind.idl",
+              "match": "\\b(?:SEQUENTIAL|HASH|FINAL|APPENDABLE|MUTABLE|BEGIN_FILE|BEFORE_DECLARATION|BEGIN_DECLARATION|END_DECLARATION|AFTER_DECLARATION|END_FILE|CORBA|DDS|XCDR|XCDR1|XCDR2|XML|USE_DEFAULT|DISCARD|TRIM|NIL|EMPTY)\\b"
+            },
+            {
+              "name": "keyword.operator.assignment.idl",
+              "match": "="
+            },
+            {
+              "name": "punctuation.section.group.begin.idl",
+              "match": "\\("
+            },
+            {
+              "name": "punctuation.section.group.end.idl",
+              "match": "\\)"
+            },
+            {
+              "name": "punctuation.separator.comma.idl",
+              "match": ","
+            },
+            {
+              "name": "keyword.operator.bitwise.idl",
+              "match": "\\|"
             }
+          ]
+        },
+        {
+          "name": "meta.annotation.idl",
+          "begin": "(^|\\s)(//@|@)([A-Za-z_][A-Za-z0-9_]*)\\b",
+          "beginCaptures": {
+            "2": { "name": "punctuation.definition.annotation.idl" },
+            "3": { "name": "entity.name.function.attribute.idl" }
+          },
+          "end": "(?=;|\\{|$)",
+          "patterns": [
+            { "include": "#comments" },
+            { "include": "#strings-and-chars" },
+            { "include": "#numbers-and-constants" },
+            { "include": "#types-and-paths" },
+            {
+              "name": "variable.parameter.attribute.idl",
+              "match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\b(?=\\s*=)",
+              "captures": {
+                "1": { "name": "variable.parameter.attribute.idl" }
+              }
+            },
+            {
+              "name": "keyword.operator.assignment.idl",
+              "match": "="
+            },
+            {
+              "name": "punctuation.section.group.begin.idl",
+              "match": "\\("
+            },
+            {
+              "name": "punctuation.section.group.end.idl",
+              "match": "\\)"
+            },
+            {
+              "name": "punctuation.separator.comma.idl",
+              "match": ","
+            },
+            {
+              "name": "keyword.operator.bitwise.idl",
+              "match": "\\|"
+            }
+          ]
+        }
+      ]
+    },
+    "strings-and-chars": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.wide.idl",
+          "begin": "L\"",
+          "beginCaptures": {
+            "0": { "name": "punctuation.definition.string.begin.idl" }
           },
           "end": "\"",
           "endCaptures": {
-            "0": {
-              "name": "punctuation.definition.string.end.idl"
-            }
+            "0": { "name": "punctuation.definition.string.end.idl" }
           },
-          "name": "string.quoted.double.idl",
           "patterns": [
-            {
-              "match": "\\\\(?:x[0-9a-fA-F]+|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8}|[0-7]{1,3}|.)",
-              "name": "constant.character.escape.idl"
-            }
+            { "include": "#escape-sequence" }
           ]
-        }
-      ]
-    },
-    "characters": {
-      "patterns": [
+        },
         {
-          "begin": "L?'",
+          "name": "string.quoted.double.idl",
+          "begin": "\"",
           "beginCaptures": {
-            "0": {
-              "name": "punctuation.definition.string.begin.idl"
-            }
+            "0": { "name": "punctuation.definition.string.begin.idl" }
+          },
+          "end": "\"",
+          "endCaptures": {
+            "0": { "name": "punctuation.definition.string.end.idl" }
+          },
+          "patterns": [
+            { "include": "#escape-sequence" }
+          ]
+        },
+        {
+          "name": "string.quoted.single.wide.idl",
+          "begin": "L'",
+          "beginCaptures": {
+            "0": { "name": "punctuation.definition.character.begin.idl" }
           },
           "end": "'",
           "endCaptures": {
-            "0": {
-              "name": "punctuation.definition.string.end.idl"
-            }
+            "0": { "name": "punctuation.definition.character.end.idl" }
           },
-          "name": "string.quoted.single.idl",
           "patterns": [
-            {
-              "match": "\\\\(?:x[0-9a-fA-F]+|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8}|[0-7]{1,3}|.)",
-              "name": "constant.character.escape.idl"
-            }
+            { "include": "#escape-sequence" }
+          ]
+        },
+        {
+          "name": "string.quoted.single.idl",
+          "begin": "'",
+          "beginCaptures": {
+            "0": { "name": "punctuation.definition.character.begin.idl" }
+          },
+          "end": "'",
+          "endCaptures": {
+            "0": { "name": "punctuation.definition.character.end.idl" }
+          },
+          "patterns": [
+            { "include": "#escape-sequence" }
           ]
         }
       ]
     },
-    "numbers": {
-      "match": "\\b(0[xX][0-9a-fA-F]+|0[bB][01]+|0[oO][0-7]+|\\d+\\.\\d+[dD]|\\d+\\.\\d+(?:[eE][+-]?\\d+)?|\\d+)\\b",
-      "name": "constant.numeric.idl"
+    "escape-sequence": {
+      "patterns": [
+        {
+          "name": "constant.character.escape.idl",
+          "match": "\\\\(?:[^xuU]|[0-9]{2,3}|x[0-9A-Fa-f]{2,}|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8})"
+        }
+      ]
     },
-    "booleans": {
-      "match": "\\b(TRUE|FALSE)\\b",
-      "name": "constant.language.idl"
+    "numbers-and-constants": {
+      "patterns": [
+        {
+          "name": "constant.language.boolean.idl",
+          "match": "\\b(?:TRUE|FALSE)\\b"
+        },
+        {
+          "name": "constant.numeric.float.fixed.idl",
+          "match": "\\b(?:[0-9]+\\.[0-9]+[dD])\\b"
+        },
+        {
+          "name": "constant.numeric.float.idl",
+          "match": "\\b(?:[0-9]+\\.[0-9]+(?:[eE][+-]?[0-9]*)?)\\b"
+        },
+        {
+          "name": "constant.numeric.integer.hex.idl",
+          "match": "\\b0[xX][0-9A-Fa-f]+\\b"
+        },
+        {
+          "name": "constant.numeric.integer.binary.idl",
+          "match": "\\b0[bB][01]+\\b"
+        },
+        {
+          "name": "constant.numeric.integer.octal.idl",
+          "match": "\\b0[oO][0-7]+\\b"
+        },
+        {
+          "name": "constant.numeric.integer.octal.idl",
+          "match": "\\b0[0-7]+\\b"
+        },
+        {
+          "name": "constant.numeric.integer.decimal.idl",
+          "match": "\\b(?:0|[1-9][0-9]*)\\b"
+        },
+        {
+          "name": "constant.other.idl",
+          "match": "\\b(?:SEQUENTIAL|HASH|FINAL|APPENDABLE|MUTABLE|BEGIN_FILE|BEFORE_DECLARATION|BEGIN_DECLARATION|END_DECLARATION|AFTER_DECLARATION|END_FILE|CORBA|DDS|XCDR|XCDR1|XCDR2|XML|USE_DEFAULT|DISCARD|TRIM|NIL|EMPTY)\\b"
+        },
+        {
+          "name": "constant.other.uppercase.idl",
+          "match": "\\b[A-Z][A-Z0-9_]*\\b"
+        }
+      ]
     },
     "declarations": {
       "patterns": [
         {
-          "match": "\\b(local|abstract|custom)\\s+(interface|valuetype)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
-          "captures": {
-            "1": {
-              "name": "storage.modifier.idl"
-            },
-            "2": {
-              "name": "storage.type.idl"
-            },
-            "3": {
-              "name": "entity.name.type.idl"
-            }
-          }
-        },
-        {
-          "match": "\\b(struct|union|enum|interface|valuetype|exception|module|component|eventtype|porttype|connector|home|bitset|bitmask|native)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
-          "captures": {
-            "1": {
-              "name": "storage.type.idl"
-            },
-            "2": {
-              "name": "entity.name.type.idl"
-            }
-          }
-        },
-        {
-          "match": "(@annotation)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
-          "captures": {
-            "1": {
-              "name": "storage.type.idl"
-            },
-            "2": {
-              "name": "entity.name.type.idl"
-            }
-          }
-        },
-        {
-          "match": "\\b(factory)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
-          "captures": {
-            "1": {
-              "name": "storage.modifier.idl"
-            },
-            "2": {
-              "name": "entity.name.type.idl"
-            }
-          }
-        },
-        {
-          "begin": "\\b(typedef)\\b",
+          "name": "meta.declaration.enum.idl",
+          "begin": "\\b(enum|bitmask)\\b\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*(\\{)",
           "beginCaptures": {
-            "1": {
-              "name": "storage.type.idl"
-            }
+            "1": { "name": "keyword.type.idl" },
+            "2": { "name": "entity.name.type.idl" },
+            "3": { "name": "punctuation.section.block.begin.idl" }
           },
-          "end": ";",
+          "end": "(\\})",
           "endCaptures": {
-            "0": {
-              "name": "punctuation.delimiter.idl"
-            }
+            "1": { "name": "punctuation.section.block.end.idl" }
           },
           "patterns": [
+            { "include": "#comments" },
+            { "include": "#attributes" },
+            { "include": "#strings-and-chars" },
+            { "include": "#numbers-and-constants" },
             {
-              "include": "#builtin-types"
+              "name": "constant.other.enum-member.idl",
+              "match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\b(?=\\s*(?:,|\\}))"
             },
-            {
-              "include": "#numbers"
-            },
-            {
-              "include": "#attributes"
-            },
-            {
-              "include": "#operators"
-            },
-            {
-              "include": "#punctuation"
-            },
-            {
-              "match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\b(?=\\s*(?:,|;))",
-              "captures": {
-                "1": {
-                  "name": "entity.name.type.idl"
-                }
-              }
-            }
+            { "include": "#operators-and-punctuation" }
           ]
+        },
+        {
+          "name": "meta.declaration.module.idl",
+          "match": "\\b(module)\\b\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "keyword.other.declaration.module.idl" },
+            "2": { "name": "entity.name.namespace.idl" }
+          }
+        },
+        {
+          "name": "meta.declaration.annotation.idl",
+          "match": "\\b(@annotation)\\b(?:\\s+(?:local|abstract)\\s+interface)?\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "keyword.type.annotation.idl" },
+            "2": { "name": "entity.name.type.annotation.idl" }
+          }
+        },
+        {
+          "name": "meta.declaration.interface.idl",
+          "match": "\\b((?:local|abstract)\\s+)?(interface)\\b\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "storage.modifier.idl" },
+            "2": { "name": "keyword.type.idl" },
+            "3": { "name": "entity.name.type.idl" }
+          }
+        },
+        {
+          "name": "meta.declaration.value-event.idl",
+          "match": "\\b((?:abstract|custom)\\s+)?(valuetype|eventtype)\\b\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "storage.modifier.idl" },
+            "2": { "name": "keyword.type.idl" },
+            "3": { "name": "entity.name.type.idl" }
+          }
+        },
+        {
+          "name": "meta.declaration.type.idl",
+          "match": "\\b(struct|union|bitset|exception|component|porttype|connector|home)\\b\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "keyword.type.idl" },
+            "2": { "name": "entity.name.type.idl" }
+          }
+        },
+        {
+          "name": "meta.declaration.typedef.idl",
+          "match": "\\b(typedef)\\b(?:\\s+[^;]+?)\\b([A-Za-z_][A-Za-z0-9_]*)\\b(?=\\s*(?:\\[[^\\]]*\\])?\\s*(?:,|;))",
+          "captures": {
+            "1": { "name": "keyword.type.idl" },
+            "2": { "name": "entity.name.type.alias.idl" }
+          }
+        },
+        {
+          "name": "meta.declaration.const.idl",
+          "match": "\\b(const)\\b\\s+([^=;]+?)\\b([A-Za-z_][A-Za-z0-9_]*)\\b\\s*(?==)",
+          "captures": {
+            "1": { "name": "storage.modifier.idl" },
+            "2": { "name": "storage.type.idl" },
+            "3": { "name": "entity.name.constant.idl" }
+          }
+        },
+        {
+          "name": "meta.inheritance.idl",
+          "match": "(:)\\s*([A-Za-z_][A-Za-z0-9_:]*)",
+          "captures": {
+            "1": { "name": "punctuation.separator.inheritance.idl" },
+            "2": { "name": "entity.other.inherited-class.idl" }
+          }
         }
       ]
     },
     "keywords": {
       "patterns": [
         {
-          "match": "\\b(switch|case|default|raises|getraises|setraises)\\b",
-          "name": "keyword.control.idl"
+          "name": "keyword.type.idl",
+          "match": "@annotation|\\b(?:enum|struct|union|bitmask|bitset|exception|typedef|home|typeid|typeprefix|component|porttype|connector|eventtype|valuetype|interface)\\b"
         },
         {
-          "match": "\\bimport\\b",
-          "name": "keyword.directive.idl"
+          "name": "keyword.control.directive.import.idl",
+          "match": "\\bimport\\b"
         },
         {
-          "match": "\\b(struct|union|enum|interface|valuetype|exception|typedef|bitmask|bitset|component|porttype|connector|eventtype|home|module|native|typeid|typeprefix)\\b",
-          "name": "storage.type.idl"
+          "name": "keyword.other.declaration.idl",
+          "match": "\\b(?:module|attribute|factory|manages|native|alias)\\b"
         },
         {
-          "match": "\\b(const|readonly|abstract|local|custom|oneway|in|out|inout|context|public|private|truncatable|multiple|bitfield|typename|alias)\\b",
-          "name": "storage.modifier.idl"
+          "name": "storage.modifier.idl",
+          "match": "\\b(?:const|readonly|abstract|custom|supports|provides|uses|port|mirrorport|emits|publishes|consumes|primarykey|finder|local|truncatable|public|private|oneway|bitfield)\\b"
         },
         {
-          "match": "\\b(port|attribute|factory|finder|provides|uses|emits|publishes|consumes|primarykey|supports|manages)\\b(?!\\s*[;,)]|\\s*$)",
-          "name": "storage.modifier.idl"
+          "name": "storage.modifier.parameter.idl",
+          "match": "\\b(?:in|out|inout)\\b"
+        },
+        {
+          "name": "keyword.control.conditional.idl",
+          "match": "\\b(?:switch|case|default)\\b"
+        },
+        {
+          "name": "keyword.control.exception.idl",
+          "match": "\\b(?:raises|getraises|setraises|context)\\b"
         }
       ]
     },
-    "builtin-types": {
-      "match": "\\b(unsigned long long|unsigned long|unsigned short|long long|long double|unsigned|long|short|int8|int16|int32|int64|uint8|uint16|uint32|uint64|float|double|char|wchar|boolean|octet|fixed|string|wstring|sequence|map|any|Object|ValueBase|void)\\b",
-      "name": "support.type.primitive.idl"
-    },
-    "constants": {
-      "match": "\\b[A-Z][A-Z0-9_]+\\b",
-      "name": "constant.other.idl"
-    },
-    "attributes": {
-      "match": "(@)\\s*([a-zA-Z_][a-zA-Z0-9_]*)",
-      "captures": {
-        "1": {
-          "name": "meta.attribute.idl"
-        },
-        "2": {
-          "name": "support.type.annotation.idl"
-        }
-      }
-    },
-    "functions": {
-      "match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\s*(?=\\()",
-      "captures": {
-        "1": {
-          "name": "entity.name.function.idl"
-        }
-      }
-    },
-    "member-names": {
-      "match": "\\b([a-z_][a-zA-Z0-9_]*)\\s*(?=;)",
-      "captures": {
-        "1": {
-          "name": "variable.other.member.idl"
-        }
-      }
-    },
-    "operators": {
-      "match": "<<|>>|[-+*/%=~|^&]",
-      "name": "keyword.operator.idl"
-    },
-    "punctuation": {
+    "types-and-paths": {
       "patterns": [
         {
-          "match": "[{}()\\[\\]<>]",
-          "name": "punctuation.bracket.idl"
+          "name": "storage.type.primitive.idl",
+          "match": "\\b(?:void|boolean|fixed|octet|char|char8|char16|wchar|string|wstring|any|Object|ValueBase|unsigned\\s+long\\s+long|unsigned\\s+long|unsigned\\s+short|long\\s+double|long\\s+long|long|short|float|double|int8|int16|int32|int64|uint8|uint16|uint32|uint64|u8|u16|u32|u64|i8|i16|i32|i64|sequence|map)\\b"
         },
         {
-          "match": "::|;|:|,",
-          "name": "punctuation.delimiter.idl"
+          "name": "entity.name.namespace.idl",
+          "match": "\\b[A-Za-z_][A-Za-z0-9_]*\\b(?=::)"
+        },
+        {
+          "name": "entity.name.namespace.idl",
+          "match": "(?<=::)[A-Za-z_][A-Za-z0-9_]*\\b"
+        },
+        {
+          "name": "entity.name.type.idl",
+          "match": "\\b[A-Z][A-Za-z0-9_]*\\b"
+        },
+        {
+          "name": "keyword.operator.namespace.idl",
+          "match": "::"
+        }
+      ]
+    },
+    "functions-and-members": {
+      "patterns": [
+        {
+          "name": "meta.function.special.idl",
+          "match": "\\b(factory|finder)\\b\\s+([A-Za-z_][A-Za-z0-9_]*)\\b",
+          "captures": {
+            "1": { "name": "keyword.other.declaration.idl" },
+            "2": { "name": "entity.name.function.method.idl" }
+          }
+        },
+        {
+          "name": "meta.function.declaration.idl",
+          "match": "(?<![@\\w])([A-Za-z_][A-Za-z0-9_]*)\\s*(?=\\()",
+          "captures": {
+            "1": { "name": "entity.name.function.method.idl" }
+          }
+        },
+        {
+          "name": "variable.parameter.idl",
+          "match": "\\b(?:in|out|inout)\\b(?:\\s+[^,()]+?\\s+)([A-Za-z_][A-Za-z0-9_]*)\\b(?=\\s*(?:,|\\)))",
+          "captures": {
+            "1": { "name": "variable.parameter.idl" }
+          }
+        },
+        {
+          "name": "variable.parameter.idl",
+          "match": "\\b(?:[A-Za-z_][A-Za-z0-9_:<>]*\\s+)+([A-Za-z_][A-Za-z0-9_]*)\\b(?=\\s*(?:,|\\)))",
+          "captures": {
+            "1": { "name": "variable.parameter.idl" }
+          }
+        },
+        {
+          "name": "variable.other.member.idl",
+          "match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\b(?=\\s*(?:\\[[^\\]]*\\])?\\s*(?:,|;|raises\\b|getraises\\b|setraises\\b))",
+          "captures": {
+            "1": { "name": "variable.other.member.idl" }
+          }
+        }
+      ]
+    },
+    "operators-and-punctuation": {
+      "patterns": [
+        {
+          "name": "punctuation.bracket.idl",
+          "match": "[()\\[\\]<>\\{}]"
+        },
+        {
+          "name": "punctuation.delimiter.idl",
+          "match": "::|;|:|,"
+        },
+        {
+          "name": "keyword.operator.idl",
+          "match": "<<|>>|[-+*=%~|^&/]"
+        }
+      ]
+    },
+    "system-include": {
+      "patterns": [
+        {
+          "name": "string.unquoted.other.system-path.idl",
+          "begin": "<",
+          "beginCaptures": {
+            "0": { "name": "punctuation.definition.string.begin.idl" }
+          },
+          "end": ">",
+          "endCaptures": {
+            "0": { "name": "punctuation.definition.string.end.idl" }
+          }
         }
       ]
     }

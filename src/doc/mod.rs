@@ -373,6 +373,184 @@ pub(super) fn load_hover_template(path: &str) -> Option<String> {
     String::from_utf8(data.to_vec()).ok()
 }
 
+/// Short documentation for annotations that do not have a `docs/hover/*.md`
+/// template. Names mirror `analysis::builtin_annotations` (DDS/RPC) and
+/// `analysis::rest_annotations` (XIDL REST HIR).
+const ANNOTATION_DOCS: &[(&str, &str)] = &[
+    // DDS/RPC built-in annotations.
+    ("id", "Set a stable identifier for the element."),
+    ("autoid", "Automatically assign an identifier."),
+    ("optional", "Mark a member or parameter as optional."),
+    ("position", "Set the serialized position of a member."),
+    ("value", "Set a constant or parameter value."),
+    (
+        "extensibility",
+        "Set the extensibility kind: `final`, `appendable` or `mutable`.",
+    ),
+    ("final", "Final extensibility: no new members may be added."),
+    (
+        "appendable",
+        "Appendable extensibility: new members may be appended after existing ones.",
+    ),
+    (
+        "mutable",
+        "Mutable extensibility: members may be added in any order.",
+    ),
+    ("key", "Mark a member as part of the topic key."),
+    (
+        "must_understand",
+        "The receiver must understand this member.",
+    ),
+    ("default_literal", "Set the default literal value."),
+    ("default", "Set the default value."),
+    (
+        "range",
+        "Constrain a numeric value to a range: `@range(min = ..., max = ...)`.",
+    ),
+    ("min", "Set the minimum value."),
+    ("max", "Set the maximum value."),
+    ("unit", "Set the unit of a numeric value."),
+    ("bit_bound", "Set the number of bits used for a bitmask."),
+    ("external", "The member is serialized externally."),
+    ("nested", "Mark a type as nested inside its enclosing type."),
+    ("verbatim", "Attach verbatim text to the element."),
+    ("service", "Mark an interface as a service."),
+    ("oneway", "Fire-and-forget operation, no reply expected."),
+    ("ami", "Asynchronous method invocation."),
+    ("hashid", "Set the hash id used for type identification."),
+    ("default_nested", "Set the default nested type."),
+    (
+        "ignore_literal_names",
+        "Ignore literal names during serialization.",
+    ),
+    ("try_construct", "Set the try-construct failure behavior."),
+    ("non_serialized", "Do not serialize this member."),
+    (
+        "data_representation",
+        "Set the data representation (e.g. XCDR2).",
+    ),
+    ("topic", "Declare a topic."),
+    (
+        "Choice",
+        "Select the member to serialize based on a discriminator.",
+    ),
+    ("Empty", "Mark an empty member set."),
+    ("DDSService", "Mark an interface as a DDS service."),
+    (
+        "DDSRequestTopic",
+        "Set the request topic of a DDS service operation.",
+    ),
+    (
+        "DDSReplyTopic",
+        "Set the reply topic of a DDS service operation.",
+    ),
+    // XIDL REST annotations.
+    (
+        "get",
+        "Mark this method as an HTTP GET request: `@get(path = \"...\")`.",
+    ),
+    (
+        "post",
+        "Mark this method as an HTTP POST request (the default when no verb is given): `@post(path = \"...\")`.",
+    ),
+    (
+        "put",
+        "Mark this method as an HTTP PUT request: `@put(path = \"...\")`.",
+    ),
+    (
+        "patch",
+        "Mark this method as an HTTP PATCH request: `@patch(path = \"...\")`.",
+    ),
+    (
+        "delete",
+        "Mark this method as an HTTP DELETE request: `@delete(path = \"...\")`.",
+    ),
+    (
+        "head",
+        "Mark this method as an HTTP HEAD request; requires a `void` return and only request-side parameters.",
+    ),
+    (
+        "options",
+        "Mark this method as an HTTP OPTIONS request: `@options(path = \"...\")`.",
+    ),
+    (
+        "path",
+        "Bind a parameter to the URL path or declare a method-level route: `@path(\"name\")`.",
+    ),
+    (
+        "query",
+        "Bind a parameter to the HTTP query string: `@query(\"name\")`.",
+    ),
+    ("body", "Bind a parameter to the HTTP request body."),
+    (
+        "header",
+        "Bind a parameter to an HTTP header: `@header(\"name\")`.",
+    ),
+    (
+        "cookie",
+        "Bind a parameter to an HTTP cookie: `@cookie(\"name\")`.",
+    ),
+    (
+        "no_security",
+        "Disable security requirements for this operation.",
+    ),
+    (
+        "http_basic",
+        "Require HTTP Basic authentication for this operation.",
+    ),
+    (
+        "http_bearer",
+        "Require HTTP Bearer token authentication for this operation.",
+    ),
+    (
+        "api_key",
+        "Require an API key, e.g. `@api_key(location = \"header\", name = \"X-Key\")`.",
+    ),
+    (
+        "server_stream",
+        "Declare a server-streaming method (SSE/NDJSON).",
+    ),
+    ("client_stream", "Declare a client-streaming method."),
+    ("bidi_stream", "Declare a bidirectional streaming method."),
+    (
+        "stream_codec",
+        "Set the stream codec, e.g. `@stream_codec(codec = \"json\")`.",
+    ),
+    ("cors", "Enable CORS for this interface or operation."),
+    (
+        "upgrade",
+        "Enable protocol upgrade handling for this operation.",
+    ),
+    (
+        "flatten",
+        "Flatten a nested object parameter into the parent body.",
+    ),
+    (
+        "deprecated",
+        "Mark the element as deprecated: `@deprecated(since = \"...\", after = \"...\")`.",
+    ),
+    (
+        "Consumes",
+        "Set the accepted media type: `@Consumes(\"application/json\")`.",
+    ),
+    (
+        "Produces",
+        "Set the produced media type: `@Produces(\"application/json\")`.",
+    ),
+];
+
+/// Documentation for an annotation completion item. Prefers the embedded
+/// `docs/hover/{name}.md` template (used by hover) and falls back to the short
+/// built-in map above.
+pub(crate) fn annotation_docs(name: &str) -> Option<String> {
+    if let Some(template) = load_hover_template(&format!("{name}.md")) {
+        return Some(template);
+    }
+    ANNOTATION_DOCS
+        .iter()
+        .find_map(|(candidate, doc)| (*candidate == name).then(|| (*doc).to_string()))
+}
+
 fn find_symbol_locations(symbols: &[GotoSymbol], name: &str, uri: &str) -> Vec<serde_json::Value> {
     symbols
         .iter()

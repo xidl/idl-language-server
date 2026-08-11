@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use ropey::Rope;
 use tower_lsp::lsp_types::{
     CompletionItem, CompletionItemKind, CompletionParams, CompletionResponse, CompletionTextEdit,
-    InsertTextFormat, Position, Range, TextEdit,
+    Documentation, InsertTextFormat, MarkupContent, MarkupKind, Position, Range, TextEdit,
 };
 
 use crate::analysis::{
@@ -11,6 +11,7 @@ use crate::analysis::{
     collect_completion_symbols, position_to_byte, rest_annotations,
 };
 use crate::context::AppContext;
+use crate::doc::annotation_docs;
 use crate::snippets::{self, Snippet};
 
 const KEYWORDS: &[&str] = &[
@@ -401,6 +402,12 @@ fn add_annotation_item(
         label,
         kind: Some(kind),
         detail: Some(detail.to_string()),
+        documentation: annotation_docs(name).map(|value| {
+            Documentation::MarkupContent(MarkupContent {
+                kind: MarkupKind::Markdown,
+                value,
+            })
+        }),
         text_edit: Some(CompletionTextEdit::Edit(TextEdit {
             range: Range {
                 start: site.replace_start,
@@ -713,6 +720,31 @@ mod tests {
                 "missing REST annotation {name}"
             );
         }
+    }
+
+    #[test]
+    fn annotation_docs_resolve_for_completion() {
+        // Template-backed docs take priority (docs/hover/get.md exists).
+        let get = annotation_docs("get").expect("get should have template docs");
+        assert!(get.contains("GET"));
+        // Built-in fallback docs for REST and DDS annotations.
+        assert!(
+            annotation_docs("http_basic")
+                .expect("http_basic should have docs")
+                .contains("HTTP Basic")
+        );
+        assert!(
+            annotation_docs("server_stream")
+                .expect("server_stream should have docs")
+                .contains("server-streaming")
+        );
+        assert!(
+            annotation_docs("key")
+                .expect("key should have docs")
+                .contains("topic key")
+        );
+        // Unknown names resolve to no docs.
+        assert_eq!(annotation_docs("DefinitelyNotAnAnnotation"), None);
     }
 
     #[test]

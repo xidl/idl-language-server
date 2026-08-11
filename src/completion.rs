@@ -8,7 +8,7 @@ use tower_lsp::lsp_types::{
 
 use crate::analysis::{
     builtin_annotations, builtin_pragmas, builtin_types, byte_to_position,
-    collect_completion_symbols, position_to_byte,
+    collect_completion_symbols, position_to_byte, rest_annotations,
 };
 use crate::context::AppContext;
 use crate::snippets::{self, Snippet};
@@ -111,6 +111,16 @@ pub(crate) fn completion(ctx: &AppContext, params: CompletionParams) -> Option<C
                     name,
                     "IDL built-in annotation",
                     CompletionItemKind::PROPERTY,
+                );
+            }
+            for name in rest_annotations() {
+                add_annotation_item(
+                    &mut items,
+                    &mut seen,
+                    &site,
+                    name,
+                    "XIDL REST annotation",
+                    CompletionItemKind::FUNCTION,
                 );
             }
             for name in collect_completion_symbols(&text).annotations {
@@ -672,6 +682,37 @@ mod tests {
         assert!(builtin_annotations().contains(&"optional"));
         assert!(builtin_annotations().contains(&"range"));
         assert!(builtin_annotations().contains(&"DDSService"));
+    }
+
+    #[test]
+    fn rest_annotation_names_are_known() {
+        for name in [
+            "get", "post", "put", "patch", "delete", "head", "options", "path",
+        ] {
+            assert!(
+                rest_annotations().contains(&name),
+                "missing REST verb/route annotation {name}"
+            );
+        }
+        for name in ["query", "body", "header", "cookie"] {
+            assert!(
+                rest_annotations().contains(&name),
+                "missing REST parameter source annotation {name}"
+            );
+        }
+        for name in [
+            "server_stream",
+            "client_stream",
+            "bidi_stream",
+            "api_key",
+            "cors",
+            "flatten",
+        ] {
+            assert!(
+                rest_annotations().contains(&name),
+                "missing REST annotation {name}"
+            );
+        }
     }
 
     #[test]

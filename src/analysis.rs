@@ -719,6 +719,47 @@ pub(crate) fn builtin_annotations() -> &'static [&'static str] {
     ]
 }
 
+/// Built-in XIDL REST annotations recognized by xidl-parser's REST HIR layer.
+///
+/// Unlike the DDS/RPC annotations above these are not `annotation_appl_*`
+/// grammar rules: tree-sitter-idl parses them as `annotation_appl_custom_body`,
+/// so they are listed explicitly to complete on fresh files.
+pub(crate) fn rest_annotations() -> &'static [&'static str] {
+    &[
+        // HTTP verbs and route/path override.
+        "get",
+        "post",
+        "put",
+        "patch",
+        "delete",
+        "head",
+        "options",
+        "path",
+        // Parameter source bindings.
+        "query",
+        "body",
+        "header",
+        "cookie",
+        // Security schemes.
+        "no_security",
+        "http_basic",
+        "http_bearer",
+        "api_key",
+        // Streaming.
+        "server_stream",
+        "client_stream",
+        "bidi_stream",
+        "stream_codec",
+        // Routing/mapping helpers.
+        "cors",
+        "upgrade",
+        "flatten",
+        "deprecated",
+        "Consumes",
+        "Produces",
+    ]
+}
+
 /// Built-in `#pragma xidlc` directives as `(label, snippet body)` pairs.
 ///
 /// The label is what completion inserts or matches against; the snippet body

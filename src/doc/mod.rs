@@ -8,7 +8,7 @@ use serde_json::json;
 use tower_lsp::lsp_types::{
     Hover, HoverContents, MarkedString, MarkupContent, MarkupKind, Position, Url,
 };
-use tree_sitter::{Parser, Query, QueryCursor, StreamingIterator};
+use tree_sitter::{Node, Parser, Query, QueryCursor, StreamingIterator};
 use xidl_parser::parser::parser_text;
 
 use crate::analysis::{
@@ -18,23 +18,82 @@ use crate::analysis::{
 pub(crate) mod http;
 
 const HOVER_QUERY: &str = include_str!("../../queries/hover_docs.scm");
+const HOVER_TYPES_QUERY: &str = include_str!("../../queries/hover_types.scm");
+
+/// Documentation for builtin types. The canonical names and descriptions come
+/// from the xidl language docs; the remaining entries are legacy CORBA
+/// spellings that the grammar still accepts, mapped onto the same meaning.
+const BUILTIN_DOCS: &[(&str, &str)] = &[
+    ("uint8", "The 8-bit unsigned integer type."),
+    ("uint16", "The 16-bit unsigned integer type."),
+    ("uint32", "The 32-bit unsigned integer type."),
+    ("uint64", "The 64-bit unsigned integer type."),
+    ("int8", "The 8-bit signed integer type."),
+    ("int16", "The 16-bit signed integer type."),
+    ("int32", "The 32-bit signed integer type."),
+    ("int64", "The 64-bit signed integer type."),
+    (
+        "float32",
+        "The 32-bit single-precision floating-point type.",
+    ),
+    (
+        "float64",
+        "The 64-bit double-precision floating-point type.",
+    ),
+    ("boolean", "The boolean type."),
+    ("string", "The string type."),
+    ("sequence", "Variable-length array with elements of type T."),
+    (
+        "map",
+        "Key-value pair collection with keys of type K and values of type V.",
+    ),
+    // Legacy CORBA spellings accepted by the grammar.
+    ("short", "The 16-bit signed integer type."),
+    ("long", "The 32-bit signed integer type."),
+    ("long long", "The 64-bit signed integer type."),
+    ("unsigned short", "The 16-bit unsigned integer type."),
+    ("unsigned long", "The 32-bit unsigned integer type."),
+    ("unsigned long long", "The 64-bit unsigned integer type."),
+    ("float", "The 32-bit single-precision floating-point type."),
+    ("double", "The 64-bit double-precision floating-point type."),
+    // Additional builtin spellings recognized by the grammar.
+    ("octet", "The octet type (an 8-bit byte)."),
+    ("char", "The character type."),
+    ("wchar", "The wide character type."),
+    ("wstring", "The wide string type."),
+    ("any", "The any type, which can hold a value of any type."),
+    ("Object", "The object reference type."),
+    ("ValueBase", "The base type for value types."),
+    ("fixed", "The fixed-point type."),
+];
 
 #[derive(RustEmbed)]
 #[folder = "docs/hover"]
 struct HoverDocs;
 
 pub(super) fn build_hover(text: &str, rope: &Rope, uri: &Url, position: Position) -> Option<Hover> {
-    let (doc_name, template_path) = hover_template_at_position(text, rope, position)?;
+    if let Some((doc_name, template_path)) = hover_template_at_position(text, rope, position) {
+        return Some(annotation_hover(text, rope, uri, &doc_name, &template_path));
+    }
+    hover_type_at_position(text, rope, position)
+}
 
-    let template = match load_hover_template(&template_path) {
+fn annotation_hover(
+    text: &str,
+    rope: &Rope,
+    uri: &Url,
+    doc_name: &str,
+    template_path: &str,
+) -> Hover {
+    let template = match load_hover_template(template_path) {
         Some(template) => template,
         None => {
-            return Some(Hover {
+            return Hover {
                 contents: HoverContents::Scalar(MarkedString::String(format!(
                     "No documentation template found for `{doc_name}`"
                 ))),
                 range: None,
-            });
+            };
         }
     };
 
@@ -69,12 +128,12 @@ pub(super) fn build_hover(text: &str, rope: &Rope, uri: &Url, position: Position
         ))
     });
     if env.add_template("hover", &template).is_err() {
-        return Some(Hover {
+        return Hover {
             contents: HoverContents::Scalar(MarkedString::String(format!(
                 "Failed to load template for `{doc_name}`"
             ))),
             range: None,
-        });
+        };
     }
 
     let ctx = json!({
@@ -94,13 +153,13 @@ pub(super) fn build_hover(text: &str, rope: &Rope, uri: &Url, position: Position
         Err(err) => format!("Failed to render hover template: {err}"),
     };
 
-    Some(Hover {
+    Hover {
         contents: HoverContents::Markup(MarkupContent {
             kind: MarkupKind::Markdown,
             value: rendered,
         }),
         range: None,
-    })
+    }
 }
 
 pub(crate) fn build_inspect_value(text: &str, target: InspectTarget) -> serde_json::Value {
@@ -122,6 +181,140 @@ pub(crate) fn build_inspect_value(text: &str, target: InspectTarget) -> serde_js
 pub(crate) enum InspectTarget {
     Hir,
     TypedAst,
+}
+
+fn hover_type_at_position(text: &str, rope: &Rope, position: Position) -> Option<Hover> {
+    let mut parser = Parser::new();
+    parser.set_language(&tree_sitter_idl::language()).ok()?;
+    let tree = parser.parse(text, None)?;
+    let query = Query::new(&tree_sitter_idl::language(), HOVER_TYPES_QUERY).ok()?;
+    let capture_names = query.capture_names();
+
+    let mut builtins: Vec<Node<'_>> = Vec::new();
+    let mut defs: Vec<(Node<'_>, Node<'_>)> = Vec::new();
+    let mut type_refs: Vec<Node<'_>> = Vec::new();
+
+    let mut cursor = QueryCursor::new();
+    let mut matches = cursor.matches(&query, tree.root_node(), text.as_bytes());
+    while let Some(m) = matches.next() {
+        let mut def = None;
+        let mut def_name = None;
+        for capture in m.captures {
+            let capture_name = match capture_names.get(capture.index as usize) {
+                Some(name) => *name,
+                None => continue,
+            };
+            match capture_name {
+                "def" => def = Some(capture.node),
+                "def.name" => def_name = Some(capture.node),
+                "type.name" => type_refs.push(capture.node),
+                "builtin.type" => builtins.push(capture.node),
+                _ => {}
+            }
+        }
+        if let (Some(def), Some(def_name)) = (def, def_name) {
+            defs.push((def, def_name));
+        }
+    }
+
+    let contains = |node: Node<'_>| position_in_range(position, node_range(node, rope));
+
+    // Prefer the most specific node under the cursor, so hovering the element
+    // type inside `sequence<int32>` shows the element docs, not the container.
+    if let Some(node) = builtins
+        .iter()
+        .copied()
+        .filter(|node| contains(*node))
+        .min_by_key(|node| node.byte_range().len())
+    {
+        return builtin_hover(text, node);
+    }
+
+    // Hovering a type's own declaration name shows the whole definition.
+    if let Some((def, _)) = defs.iter().copied().find(|(_, name)| contains(*name)) {
+        return Some(definition_hover(text, def));
+    }
+
+    // Hovering a type reference resolves it back to its definition.
+    if let Some(node) = type_refs
+        .iter()
+        .copied()
+        .filter(|node| contains(*node))
+        .min_by_key(|node| node.byte_range().len())
+    {
+        let name = match node.utf8_text(text.as_bytes()) {
+            Ok(name) => name.trim(),
+            Err(_) => return None,
+        };
+        if let Some((def, _)) = defs
+            .iter()
+            .filter(|(_, name_node)| {
+                name_node
+                    .utf8_text(text.as_bytes())
+                    .map(|candidate| candidate.trim() == name)
+                    .unwrap_or(false)
+            })
+            .max_by_key(|(def, _)| def.byte_range().len())
+        {
+            return Some(definition_hover(text, *def));
+        }
+        // Spellings such as `float32`/`float64` parse as type references but
+        // are still documented builtins in xidl.
+        return builtin_named_hover(name);
+    }
+
+    None
+}
+
+fn definition_hover(text: &str, def: Node<'_>) -> Hover {
+    let source = def
+        .utf8_text(text.as_bytes())
+        .map(|source| source.trim())
+        .unwrap_or("");
+    Hover {
+        contents: HoverContents::Markup(MarkupContent {
+            kind: MarkupKind::Markdown,
+            value: format!("```idl\n{source}\n```"),
+        }),
+        range: None,
+    }
+}
+
+fn builtin_hover(text: &str, node: Node<'_>) -> Option<Hover> {
+    let raw = node.utf8_text(text.as_bytes()).ok()?;
+    let key = builtin_key(raw);
+    let (_, doc) = BUILTIN_DOCS.iter().find(|(name, _)| *name == key)?;
+    Some(builtin_hover_content(raw.trim(), doc))
+}
+
+fn builtin_named_hover(name: &str) -> Option<Hover> {
+    let (_, doc) = BUILTIN_DOCS
+        .iter()
+        .find(|(candidate, _)| *candidate == name)?;
+    Some(builtin_hover_content(name, doc))
+}
+
+fn builtin_hover_content(name: &str, doc: &str) -> Hover {
+    Hover {
+        contents: HoverContents::Markup(MarkupContent {
+            kind: MarkupKind::Markdown,
+            value: format!("```idl\n{name}\n```\n\n{doc}"),
+        }),
+        range: None,
+    }
+}
+
+/// Map a builtin node's source text onto a `BUILTIN_DOCS` key. Container and
+/// bounded spellings (`sequence<int32>`, `string<32>`) only keep the keyword,
+/// while multi-word spellings (`long long`) match exactly.
+fn builtin_key(raw: &str) -> &str {
+    if BUILTIN_DOCS.iter().any(|(name, _)| *name == raw) {
+        raw
+    } else {
+        raw.split(|c: char| c == '<' || c.is_whitespace())
+            .next()
+            .unwrap_or(raw)
+    }
 }
 
 fn hover_template_at_position(
@@ -180,6 +373,184 @@ pub(super) fn load_hover_template(path: &str) -> Option<String> {
     String::from_utf8(data.to_vec()).ok()
 }
 
+/// Short documentation for annotations that do not have a `docs/hover/*.md`
+/// template. Names mirror `analysis::builtin_annotations` (DDS/RPC) and
+/// `analysis::rest_annotations` (XIDL REST HIR).
+const ANNOTATION_DOCS: &[(&str, &str)] = &[
+    // DDS/RPC built-in annotations.
+    ("id", "Set a stable identifier for the element."),
+    ("autoid", "Automatically assign an identifier."),
+    ("optional", "Mark a member or parameter as optional."),
+    ("position", "Set the serialized position of a member."),
+    ("value", "Set a constant or parameter value."),
+    (
+        "extensibility",
+        "Set the extensibility kind: `final`, `appendable` or `mutable`.",
+    ),
+    ("final", "Final extensibility: no new members may be added."),
+    (
+        "appendable",
+        "Appendable extensibility: new members may be appended after existing ones.",
+    ),
+    (
+        "mutable",
+        "Mutable extensibility: members may be added in any order.",
+    ),
+    ("key", "Mark a member as part of the topic key."),
+    (
+        "must_understand",
+        "The receiver must understand this member.",
+    ),
+    ("default_literal", "Set the default literal value."),
+    ("default", "Set the default value."),
+    (
+        "range",
+        "Constrain a numeric value to a range: `@range(min = ..., max = ...)`.",
+    ),
+    ("min", "Set the minimum value."),
+    ("max", "Set the maximum value."),
+    ("unit", "Set the unit of a numeric value."),
+    ("bit_bound", "Set the number of bits used for a bitmask."),
+    ("external", "The member is serialized externally."),
+    ("nested", "Mark a type as nested inside its enclosing type."),
+    ("verbatim", "Attach verbatim text to the element."),
+    ("service", "Mark an interface as a service."),
+    ("oneway", "Fire-and-forget operation, no reply expected."),
+    ("ami", "Asynchronous method invocation."),
+    ("hashid", "Set the hash id used for type identification."),
+    ("default_nested", "Set the default nested type."),
+    (
+        "ignore_literal_names",
+        "Ignore literal names during serialization.",
+    ),
+    ("try_construct", "Set the try-construct failure behavior."),
+    ("non_serialized", "Do not serialize this member."),
+    (
+        "data_representation",
+        "Set the data representation (e.g. XCDR2).",
+    ),
+    ("topic", "Declare a topic."),
+    (
+        "Choice",
+        "Select the member to serialize based on a discriminator.",
+    ),
+    ("Empty", "Mark an empty member set."),
+    ("DDSService", "Mark an interface as a DDS service."),
+    (
+        "DDSRequestTopic",
+        "Set the request topic of a DDS service operation.",
+    ),
+    (
+        "DDSReplyTopic",
+        "Set the reply topic of a DDS service operation.",
+    ),
+    // XIDL REST annotations.
+    (
+        "get",
+        "Mark this method as an HTTP GET request: `@get(path = \"...\")`.",
+    ),
+    (
+        "post",
+        "Mark this method as an HTTP POST request (the default when no verb is given): `@post(path = \"...\")`.",
+    ),
+    (
+        "put",
+        "Mark this method as an HTTP PUT request: `@put(path = \"...\")`.",
+    ),
+    (
+        "patch",
+        "Mark this method as an HTTP PATCH request: `@patch(path = \"...\")`.",
+    ),
+    (
+        "delete",
+        "Mark this method as an HTTP DELETE request: `@delete(path = \"...\")`.",
+    ),
+    (
+        "head",
+        "Mark this method as an HTTP HEAD request; requires a `void` return and only request-side parameters.",
+    ),
+    (
+        "options",
+        "Mark this method as an HTTP OPTIONS request: `@options(path = \"...\")`.",
+    ),
+    (
+        "path",
+        "Bind a parameter to the URL path or declare a method-level route: `@path(\"name\")`.",
+    ),
+    (
+        "query",
+        "Bind a parameter to the HTTP query string: `@query(\"name\")`.",
+    ),
+    ("body", "Bind a parameter to the HTTP request body."),
+    (
+        "header",
+        "Bind a parameter to an HTTP header: `@header(\"name\")`.",
+    ),
+    (
+        "cookie",
+        "Bind a parameter to an HTTP cookie: `@cookie(\"name\")`.",
+    ),
+    (
+        "no_security",
+        "Disable security requirements for this operation.",
+    ),
+    (
+        "http_basic",
+        "Require HTTP Basic authentication for this operation.",
+    ),
+    (
+        "http_bearer",
+        "Require HTTP Bearer token authentication for this operation.",
+    ),
+    (
+        "api_key",
+        "Require an API key, e.g. `@api_key(location = \"header\", name = \"X-Key\")`.",
+    ),
+    (
+        "server_stream",
+        "Declare a server-streaming method (SSE/NDJSON).",
+    ),
+    ("client_stream", "Declare a client-streaming method."),
+    ("bidi_stream", "Declare a bidirectional streaming method."),
+    (
+        "stream_codec",
+        "Set the stream codec, e.g. `@stream_codec(codec = \"json\")`.",
+    ),
+    ("cors", "Enable CORS for this interface or operation."),
+    (
+        "upgrade",
+        "Enable protocol upgrade handling for this operation.",
+    ),
+    (
+        "flatten",
+        "Flatten a nested object parameter into the parent body.",
+    ),
+    (
+        "deprecated",
+        "Mark the element as deprecated: `@deprecated(since = \"...\", after = \"...\")`.",
+    ),
+    (
+        "Consumes",
+        "Set the accepted media type: `@Consumes(\"application/json\")`.",
+    ),
+    (
+        "Produces",
+        "Set the produced media type: `@Produces(\"application/json\")`.",
+    ),
+];
+
+/// Documentation for an annotation completion item. Prefers the embedded
+/// `docs/hover/{name}.md` template (used by hover) and falls back to the short
+/// built-in map above.
+pub(crate) fn annotation_docs(name: &str) -> Option<String> {
+    if let Some(template) = load_hover_template(&format!("{name}.md")) {
+        return Some(template);
+    }
+    ANNOTATION_DOCS
+        .iter()
+        .find_map(|(candidate, doc)| (*candidate == name).then(|| (*doc).to_string()))
+}
+
 fn find_symbol_locations(symbols: &[GotoSymbol], name: &str, uri: &str) -> Vec<serde_json::Value> {
     symbols
         .iter()
@@ -221,9 +592,21 @@ fn find_reference_locations(
 
 #[cfg(test)]
 mod tests {
-    use super::hover_template_at_position;
+    use super::{build_hover, hover_template_at_position, hover_type_at_position};
     use ropey::Rope;
-    use tower_lsp::lsp_types::Position;
+    use tower_lsp::lsp_types::{HoverContents, Position, Url};
+
+    fn hover_markdown(text: &str, position: Position) -> String {
+        let rope = Rope::from_str(text);
+        let hover = hover_type_at_position(text, &rope, position)
+            .expect("expected a hover at the given position");
+        match hover.contents {
+            HoverContents::Markup(content) => content.value,
+            HoverContents::Scalar(_) | HoverContents::Array(_) => {
+                panic!("expected markup hover contents")
+            }
+        }
+    }
 
     #[test]
     fn hover_template_matches_get_annotation() {
@@ -233,6 +616,161 @@ mod tests {
         assert_eq!(
             hover_template_at_position(text, &rope, Position::new(0, 2)),
             Some(("get".to_string(), "get.md".to_string()))
+        );
+    }
+
+    #[test]
+    fn hover_type_reference_shows_definition() {
+        let text = "struct SimulationRequest {\n    string src_ip;\n    string dst_ip;\n    string proto;\n    int32 port;\n};\n\nstruct Other {\n    SimulationRequest simulation_req;\n};";
+        let value = hover_markdown(text, Position::new(8, 6));
+
+        assert!(
+            value.contains("```idl"),
+            "expected a code fence in: {value}"
+        );
+        assert!(
+            value.contains("struct SimulationRequest {"),
+            "missing definition in: {value}"
+        );
+        assert!(
+            value.contains("int32 port;"),
+            "missing definition body in: {value}"
+        );
+    }
+
+    #[test]
+    fn hover_type_definition_name_shows_definition() {
+        let text = "struct SimulationRequest {\n    string src_ip;\n    int32 port;\n};";
+        let offset = text.find("SimulationRequest").unwrap() as u32;
+        let value = hover_markdown(text, Position::new(0, offset + 2));
+
+        assert!(
+            value.contains("struct SimulationRequest {"),
+            "missing definition in: {value}"
+        );
+        assert!(
+            value.contains("```idl"),
+            "expected a code fence in: {value}"
+        );
+    }
+
+    #[test]
+    fn hover_typedef_reference_shows_definition() {
+        let text = "typedef sequence<int32> IntList;\nstruct A { IntList list; };";
+        let value = hover_markdown(text, Position::new(1, 13));
+
+        assert!(
+            value.contains("typedef sequence<int32> IntList"),
+            "missing typedef in: {value}"
+        );
+    }
+
+    #[test]
+    fn hover_builtin_int32_shows_doc() {
+        let text = "struct S { int32 port; };";
+        let offset = text.find("int32").unwrap() as u32;
+        let value = hover_markdown(text, Position::new(0, offset + 2));
+
+        assert!(
+            value.contains("The 32-bit signed integer type."),
+            "got: {value}"
+        );
+        assert!(
+            value.contains("```idl"),
+            "expected a code fence in: {value}"
+        );
+    }
+
+    #[test]
+    fn hover_builtin_sequence_keyword_shows_doc() {
+        let text = "struct S { sequence<int32> values; };";
+        let offset = text.find("sequence").unwrap() as u32;
+        let value = hover_markdown(text, Position::new(0, offset + 2));
+
+        assert!(value.contains("Variable-length array"), "got: {value}");
+    }
+
+    #[test]
+    fn hover_builtin_map_keyword_shows_doc() {
+        let text = "struct S { map<string, int32> table; };";
+        let offset = text.find("map").unwrap() as u32;
+        let value = hover_markdown(text, Position::new(0, offset + 2));
+
+        assert!(value.contains("Key-value pair collection"), "got: {value}");
+    }
+
+    #[test]
+    fn hover_builtin_long_long_shows_doc() {
+        let text = "interface I { void f(long long value); };";
+        let offset = text.find("long long").unwrap() as u32;
+        let value = hover_markdown(text, Position::new(0, offset + 2));
+
+        assert!(
+            value.contains("The 64-bit signed integer type."),
+            "got: {value}"
+        );
+    }
+
+    #[test]
+    fn hover_builtin_string_keyword_shows_doc() {
+        let text = "struct S { string name; };";
+        let offset = text.find("string").unwrap() as u32;
+        let value = hover_markdown(text, Position::new(0, offset + 2));
+
+        assert!(value.contains("The string type."), "got: {value}");
+    }
+
+    #[test]
+    fn hover_float32_reference_falls_back_to_builtin_doc() {
+        let text = "interface I { void f(float32 value); };";
+        let offset = text.find("float32").unwrap() as u32;
+        let value = hover_markdown(text, Position::new(0, offset + 2));
+
+        assert!(
+            value.contains("The 32-bit single-precision floating-point type."),
+            "got: {value}"
+        );
+    }
+
+    #[test]
+    fn build_hover_routes_to_type_definition() {
+        let text = "struct SimulationRequest {\n    int32 port;\n};\n\nstruct Other { SimulationRequest simulation_req; };";
+        let rope = Rope::from_str(text);
+        let uri = Url::parse("file:///test.idl").unwrap();
+
+        let hover = build_hover(text, &rope, &uri, Position::new(4, 17)).expect("hover");
+        match hover.contents {
+            HoverContents::Markup(content) => {
+                assert!(
+                    content.value.contains("struct SimulationRequest {"),
+                    "got: {}",
+                    content.value
+                );
+            }
+            _ => panic!("expected markup hover contents"),
+        }
+    }
+
+    #[test]
+    fn hover_reference_prefers_full_definition_over_forward_decl() {
+        let text = "struct SimulationRequest;\nstruct Other { SimulationRequest simulation_req; };\nstruct SimulationRequest { string src_ip; int32 port; };";
+        let value = hover_markdown(text, Position::new(1, 17));
+
+        assert!(
+            value.contains("int32 port;"),
+            "expected the full definition, got: {value}"
+        );
+    }
+
+    #[test]
+    fn hover_within_sequence_element_shows_element_doc() {
+        let text = "struct S { sequence<int32> values; };";
+        let offset = text.find("int32").unwrap() as u32;
+        let value = hover_markdown(text, Position::new(0, offset + 2));
+
+        assert!(
+            value.contains("The 32-bit signed integer type."),
+            "got: {value}"
         );
     }
 }

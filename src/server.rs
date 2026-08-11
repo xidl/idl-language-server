@@ -35,8 +35,16 @@ impl Backend {
 
 #[tower_lsp::async_trait]
 impl LanguageServer for Backend {
-    async fn initialize(&self, _: InitializeParams) -> Result<InitializeResult> {
-        info!("initializing idl-language-server");
+    async fn initialize(&self, params: InitializeParams) -> Result<InitializeResult> {
+        let snippet_support = params
+            .capabilities
+            .text_document
+            .and_then(|text_document| text_document.completion)
+            .and_then(|completion| completion.completion_item)
+            .and_then(|completion_item| completion_item.snippet_support)
+            .unwrap_or(false);
+        self.ctx.set_snippet_support(snippet_support);
+        info!("initializing idl-language-server (client snippetSupport: {snippet_support})");
         Ok(InitializeResult {
             server_info: Some(ServerInfo {
                 name: env!("CARGO_PKG_NAME").to_string(),
@@ -328,6 +336,7 @@ impl LanguageServer for Backend {
 
 pub(crate) async fn run() {
     env_logger::init();
+    crate::snippets::all();
     info!("starting idl-language-server process");
 
     let stdin = tokio::io::stdin();

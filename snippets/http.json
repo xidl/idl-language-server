@@ -1,0 +1,82 @@
+{
+	"@http": {
+		"prefix": "@http",
+		"body": "@http",
+		"description": "Mark an interface as using XIDL HTTP mapping"
+	},
+	"@get": {
+		"prefix": "@get",
+		"body": "@get(path = \"${1:path}\")",
+		"description": "Mark a method as a GET request"
+	},
+	"@post": {
+		"prefix": "@post",
+		"body": "@post(path = \"${1:path}\")",
+		"description": "Mark a method as a POST request"
+	},
+	"@put": {
+		"prefix": "@put",
+		"body": "@put(path = \"${1:path}\")",
+		"description": "Mark a method as a PUT request"
+	},
+	"@patch": {
+		"prefix": "@patch",
+		"body": "@patch(path = \"${1:path}\")",
+		"description": "Mark a method as a PATCH request"
+	},
+	"@delete": {
+		"prefix": "@delete",
+		"body": "@delete(path = \"${1:path}\")",
+		"description": "Mark a method as a DELETE request"
+	},
+	"@head": {
+		"prefix": "@head",
+		"body": "@head(path = \"${1:path}\")",
+		"description": "Mark a method as a HEAD request"
+	},
+	"@options": {
+		"prefix": "@options",
+		"body": "@options(path = \"${1:path}\")",
+		"description": "Mark a method as an OPTIONS request"
+	},
+	"@path": {
+		"prefix": "@path",
+		"body": "@path(\"${1:path}\")",
+		"description": "Declare a method-level route path"
+	},
+	"@query": {
+		"prefix": "@query",
+		"body": "@query(\"${1:name}\")",
+		"description": "Mark a parameter as coming from the query string"
+	},
+	"@header": {
+		"prefix": "@header",
+		"body": "@header(\"${1:name}\")",
+		"description": "Mark a parameter as an HTTP header"
+	},
+	"@cookie": {
+		"prefix": "@cookie",
+		"body": "@cookie(\"${1:name}\")",
+		"description": "Mark a parameter as an HTTP cookie"
+	},
+	"@Consumes": {
+		"prefix": "@Consumes",
+		"body": "@Consumes(\"${1:application/json}\")",
+		"description": "Declare the media type consumed"
+	},
+	"@Produces": {
+		"prefix": "@Produces",
+		"body": "@Produces(\"${1:application/json}\")",
+		"description": "Declare the media type produced"
+	},
+	"@deprecated": {
+		"prefix": "@deprecated",
+		"body": "@deprecated",
+		"description": "Mark an interface or method as deprecated"
+	},
+	"@optional": {
+		"prefix": "@optional",
+		"body": "@optional",
+		"description": "Mark a parameter as optional"
+	}
+}

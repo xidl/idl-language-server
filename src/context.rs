@@ -1,5 +1,6 @@
 use dashmap::DashMap;
 use ropey::Rope;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tower_lsp::Client;
 use tower_lsp::lsp_types::{ConfigurationItem, SemanticToken};
 
@@ -15,6 +16,7 @@ pub struct AppContext {
     pub(crate) semantic_tokens_map: DashMap<String, Vec<SemanticToken>>,
     pub(crate) preview_map: DashMap<String, PreviewHandle>,
     pub(crate) settings: tokio::sync::RwLock<Settings>,
+    pub(crate) snippet_support: AtomicBool,
 }
 
 impl AppContext {
@@ -25,7 +27,16 @@ impl AppContext {
             semantic_tokens_map: DashMap::new(),
             preview_map: DashMap::new(),
             settings: tokio::sync::RwLock::new(Settings::default()),
+            snippet_support: AtomicBool::new(false),
         }
+    }
+
+    pub(crate) fn set_snippet_support(&self, enabled: bool) {
+        self.snippet_support.store(enabled, Ordering::Relaxed);
+    }
+
+    pub(crate) fn snippet_support(&self) -> bool {
+        self.snippet_support.load(Ordering::Relaxed)
     }
 
     pub async fn fetch_settings(&self) {

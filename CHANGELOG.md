@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.35.0](https://github.com/xidl/idl-language-server/compare/v0.34.0...v0.35.0) (2026-08-11)
+
+
+### Features
+
+* **lsp:** context-aware completion, hover docs, and idl grammar ([#157](https://github.com/xidl/idl-language-server/issues/157)) ([b2dea39](https://github.com/xidl/idl-language-server/commit/b2dea39e098a8b042de68263db2aa3d606aa91f9))
+
 ## [0.34.0](https://github.com/xidl/idl-language-server/compare/v0.33.0...v0.34.0) (2026-08-10)
 
 

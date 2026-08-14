@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.36.0](https://github.com/xidl/idl-language-server/compare/v0.35.0...v0.36.0) (2026-08-14)
+
+
+### Features
+
+* bump minijinja from 2.22.0 to 2.23.0 ([3be9552](https://github.com/xidl/idl-language-server/commit/3be9552516dad58e6b4ea24a8ebb3da72d9147b8))
+* bump thiserror from 2.0.19 to 2.0.20 ([4fed1a7](https://github.com/xidl/idl-language-server/commit/4fed1a73e2ca1db62f0a8cb9b0100e1c94c565a2))
+* bump xidl-parser from 0.87.0 to 0.88.0 ([db4ab65](https://github.com/xidl/idl-language-server/commit/db4ab6575649faf012ed68c077e94e116486cd67))
+* bump xidlc from 0.87.0 to 0.88.0 ([b734282](https://github.com/xidl/idl-language-server/commit/b7342827446f0d2db72d67aa0c79a11221f3a2fc))
+
 ## [0.35.0](https://github.com/xidl/idl-language-server/compare/v0.34.0...v0.35.0) (2026-08-11)
 
 

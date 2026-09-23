@@ -336,18 +336,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
 
 [[package]]
-name = "enum_dispatch"
-version = "0.3.13"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa18ce2bc66555b3218614519ac839ddb759a7d6720732f979ef8d13be147ecd"
-dependencies = [
- "once_cell",
- "proc-macro2",
- "quote",
- "syn 2.0.117",
-]
-
-[[package]]
 name = "env_filter"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -599,7 +587,7 @@ dependencies = [
  "tree-sitter-idl",
  "utoipa",
  "utoipa-scalar",
- "xidl-parser",
+ "xidl-parser 0.91.1",
  "xidlc",
 ]
 
@@ -763,28 +751,6 @@ name = "memo-map"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "38d1115007560874e373613744c6fba374c17688327a71c1476d1a5954cc857b"
-
-[[package]]
-name = "miette"
-version = "7.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f98efec8807c63c752b5bd61f862c165c115b0a35685bdcfd9238c7aeb592b7"
-dependencies = [
- "cfg-if",
- "miette-derive",
- "unicode-width",
-]
-
-[[package]]
-name = "miette-derive"
-version = "7.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db5b29714e950dbb20d5e6f74f9dcec4edbcc1067bb7f8ed198c097b8c1a818b"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.117",
-]
 
 [[package]]
 name = "mime"
@@ -1526,12 +1492,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f6ccf251212114b54433ec949fd6a7841275f9ada20dddd2f29e9ceea4501493"
 
 [[package]]
-name = "unicode-width"
-version = "0.1.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7dd6e30e90baa6f72411720665d41d89b9a3d039dc45b8faea1ddd07f617f6af"
-
-[[package]]
 name = "url"
 version = "2.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1705,9 +1665,9 @@ checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
 
 [[package]]
 name = "xidl-jsonrpc"
-version = "0.91.1"
+version = "0.92.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b66dd13b88ad5fa2625c6ca3e9d19a9d32588f02858265b571c9434c5857736c"
+checksum = "d9a9cabb721113107a7d480fba4823d94dd5e0bc8e39f49c4897b8cdb5c8b772"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -1716,7 +1676,6 @@ dependencies = [
  "futures-util",
  "serde",
  "serde_json",
- "thiserror",
  "tokio",
 ]
 
@@ -1736,7 +1695,25 @@ dependencies = [
  "thiserror",
  "tree-sitter",
  "tree-sitter-idl",
- "xidl-parser-derive",
+ "xidl-parser-derive 0.91.1",
+]
+
+[[package]]
+name = "xidl-parser"
+version = "0.92.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4a4633315c359ff4602053b16f41c788d7da8c54fb2e467c09fe882a7cd43c19"
+dependencies = [
+ "convert_case",
+ "include_dir",
+ "jiff",
+ "md5",
+ "minijinja",
+ "serde",
+ "serde_json",
+ "tree-sitter",
+ "tree-sitter-idl",
+ "xidl-parser-derive 0.92.1",
 ]
 
 [[package]]
@@ -1754,32 +1731,41 @@ dependencies = [
 ]
 
 [[package]]
-name = "xidlc"
-version = "0.91.1"
+name = "xidl-parser-derive"
+version = "0.92.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b360cd66ccd180cc95575acb2785b44afe367f161c8c620ede1d2c6096e70d00"
+checksum = "321f155c583ef86ed27fd9cad029c962093b67614b1c2db1c7a6b8cd397e2b2f"
+dependencies = [
+ "convert_case",
+ "proc-macro2",
+ "quote",
+ "syn 3.0.2",
+ "tree-sitter-idl",
+]
+
+[[package]]
+name = "xidlc"
+version = "0.92.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6e5df5a4d37e094be82aafeaf869acff9765e960c95f46192c824b0e25fca7c3"
 dependencies = [
  "async-trait",
  "convert_case",
- "enum_dispatch",
  "include_dir",
  "indexmap",
  "itertools",
  "jiff",
  "md5",
- "miette",
  "minijinja",
  "scopeguard",
  "semver",
  "serde",
  "serde_json",
- "thiserror",
  "tokio",
- "tracing",
  "tree-sitter",
  "tree-sitter-idl",
  "xidl-jsonrpc",
- "xidl-parser",
+ "xidl-parser 0.92.1",
 ]
 
 [[package]]

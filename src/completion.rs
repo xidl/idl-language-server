@@ -720,6 +720,15 @@ mod tests {
                 "missing REST annotation {name}"
             );
         }
+        for name in ["request", "response", "http", "rename", "skip"] {
+            assert!(
+                rest_annotations().contains(&name),
+                "missing REST annotation {name}"
+            );
+        }
+        // `@Consumes`/`@Produces` were replaced by `@request`/`@response`.
+        assert!(!rest_annotations().contains(&"Consumes"));
+        assert!(!rest_annotations().contains(&"Produces"));
     }
 
     #[test]
@@ -742,6 +751,37 @@ mod tests {
             annotation_docs("key")
                 .expect("key should have docs")
                 .contains("topic key")
+        );
+        // New annotations added alongside the latest xidl-parser.
+        assert!(
+            annotation_docs("request")
+                .expect("request should have docs")
+                .contains("request media type")
+        );
+        assert!(
+            annotation_docs("response")
+                .expect("response should have docs")
+                .contains("response media type")
+        );
+        assert!(
+            annotation_docs("http")
+                .expect("http should have template docs")
+                .contains("Error channels")
+        );
+        assert!(
+            annotation_docs("rename")
+                .expect("rename should have docs")
+                .contains("wire")
+        );
+        assert!(
+            annotation_docs("rename_all")
+                .expect("rename_all should have docs")
+                .contains("snake_case")
+        );
+        assert!(
+            annotation_docs("skip")
+                .expect("skip should have docs")
+                .contains("generated code")
         );
         // Unknown names resolve to no docs.
         assert_eq!(annotation_docs("DefinitelyNotAnAnnotation"), None);

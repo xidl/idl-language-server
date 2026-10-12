@@ -59,3 +59,31 @@ pub(crate) fn refresh_semantic_tokens(ctx: &AppContext, uri: &str, text: &str) {
     let tokens = build_highlight_tokens(text, &rope);
     ctx.semantic_tokens_map.insert(uri.to_string(), tokens);
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn formatter_accepts_new_media_type_and_wire_naming_annotations() {
+        let source = r#"@request(format = "json")
+@response(format = "msgpack")
+interface Store {
+    @get(path = "/items/{id}")
+    @request(format = "urlencoded")
+    string fetch(@path @rename("id") in string itemId);
+};
+
+@http(304) exception Cached { @body string msg; };
+
+@rename_all(rule = "snake_case")
+struct Record {
+    @rename("item_id") @skip
+    long itemId;
+};
+"#;
+        let formatted = xidlc::fmt::format_idl_source(source)
+            .expect("formatter should accept the new annotations");
+        assert!(formatted.contains("@request(format = \"json\")"));
+        assert!(formatted.contains("@http(304)"));
+        assert!(formatted.contains("@rename(\"item_id\")"));
+    }
+}

@@ -281,7 +281,6 @@ async fn regenerate_openapi(text: &str, source_path: &Path, out_dir: &Path) -> a
     let mut generator = xidlc::driver::Generator::new("openapi".into());
     let files = generator
         .generate_from_idl(text, source_path, std::collections::HashMap::new())
-        .await
         .map_err(|e| anyhow::anyhow!("OpenAPI generation failed: {e:?}"))?;
 
     for file in files {

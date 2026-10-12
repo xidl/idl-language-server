@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.39.0](https://github.com/xidl/idl-language-server/compare/v0.38.0...v0.39.0) (2026-10-12)
+
+
+### Features
+
+* bump xidl-parser/xidlc to 0.99.1 and complete LSP support ([9223154](https://github.com/xidl/idl-language-server/commit/92231541cdcc5ed50d64bcb03a703c464ff66246))
+
 ## [0.38.0](https://github.com/xidl/idl-language-server/compare/v0.37.0...v0.38.0) (2026-10-12)
 
 

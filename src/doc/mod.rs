@@ -530,13 +530,26 @@ const ANNOTATION_DOCS: &[(&str, &str)] = &[
         "Mark the element as deprecated: `@deprecated(since = \"...\", after = \"...\")`.",
     ),
     (
-        "Consumes",
-        "Set the accepted media type: `@Consumes(\"application/json\")`.",
+        "request",
+        "Set the accepted request media type: `@request(format = \"json\")` with `json`, `urlencoded`, or `msgpack`.",
     ),
     (
-        "Produces",
-        "Set the produced media type: `@Produces(\"application/json\")`.",
+        "response",
+        "Set the produced response media type: `@response(format = \"json\")` with `json`, `urlencoded`, or `msgpack`.",
     ),
+    (
+        "http",
+        "Declare an HTTP error channel on an exception: `@http(412)` or `@http(status = 412)` (status in 300..=599); on a union, enable content negotiation over the built-in `ContentType` discriminator.",
+    ),
+    (
+        "rename",
+        "Rename a member on the wire: `@rename(\"wire_name\")`.",
+    ),
+    (
+        "rename_all",
+        "Rename every member of the enclosing type: `@rename_all(rule = \"snake_case\")`.",
+    ),
+    ("skip", "Exclude a member from generated code: `@skip`."),
 ];
 
 /// Documentation for an annotation completion item. Prefers the embedded

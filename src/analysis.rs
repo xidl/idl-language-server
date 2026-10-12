@@ -740,6 +740,16 @@ pub(crate) fn rest_annotations() -> &'static [&'static str] {
         "body",
         "header",
         "cookie",
+        // Media type selection (`format` = `json`/`urlencoded`/`msgpack`).
+        "request",
+        "response",
+        // HTTP error channel on exceptions and content-negotiated
+        // response unions switching on the built-in `ContentType`.
+        "http",
+        // Wire naming.
+        "rename",
+        "rename_all",
+        "skip",
         // Security schemes.
         "no_security",
         "http_basic",
@@ -755,8 +765,6 @@ pub(crate) fn rest_annotations() -> &'static [&'static str] {
         "upgrade",
         "flatten",
         "deprecated",
-        "Consumes",
-        "Produces",
     ]
 }
 
@@ -1092,6 +1100,33 @@ interface Service {
             diagnostic.severity == Some(DiagnosticSeverity::WARNING)
                 && diagnostic.message == "Unknown type in current file: Foo"
         }));
+    }
+
+    #[test]
+    fn diagnostics_accept_new_media_type_and_wire_naming_annotations() {
+        let source = r#"
+@request(format = "json")
+@response(format = "msgpack")
+interface Store {
+    @get(path = "/items/{id}")
+    @request(format = "urlencoded")
+    string fetch(@path @rename("id") in string itemId);
+};
+
+@http(304) exception Cached { @body string msg; };
+
+@rename_all(rule = "snake_case")
+struct Record {
+    @rename("item_id") @skip
+    long itemId;
+};
+"#;
+
+        let diagnostics = build_diagnostics(source);
+        assert!(
+            diagnostics.is_empty(),
+            "expected no diagnostics for new annotations, got: {diagnostics:?}"
+        );
     }
 
     #[test]

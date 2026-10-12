@@ -1,8 +1,8 @@
 {
 	"@http": {
 		"prefix": "@http",
-		"body": "@http",
-		"description": "Mark an interface as using XIDL HTTP mapping"
+		"body": "@http(${1:status})",
+		"description": "Declare an HTTP error channel on an exception, or content negotiation on a union"
 	},
 	"@get": {
 		"prefix": "@get",
@@ -59,15 +59,30 @@
 		"body": "@cookie(\"${1:name}\")",
 		"description": "Mark a parameter as an HTTP cookie"
 	},
-	"@Consumes": {
-		"prefix": "@Consumes",
-		"body": "@Consumes(\"${1:application/json}\")",
-		"description": "Declare the media type consumed"
+	"@request": {
+		"prefix": "@request",
+		"body": "@request(format = \"${1:json}\")",
+		"description": "Declare the accepted request media type (json, urlencoded, msgpack)"
 	},
-	"@Produces": {
-		"prefix": "@Produces",
-		"body": "@Produces(\"${1:application/json}\")",
-		"description": "Declare the media type produced"
+	"@response": {
+		"prefix": "@response",
+		"body": "@response(format = \"${1:json}\")",
+		"description": "Declare the produced response media type (json, urlencoded, msgpack)"
+	},
+	"@rename": {
+		"prefix": "@rename",
+		"body": "@rename(\"${1:wire_name}\")",
+		"description": "Rename a member on the wire"
+	},
+	"@rename_all": {
+		"prefix": "@rename_all",
+		"body": "@rename_all(rule = \"${1:snake_case}\")",
+		"description": "Rename every member of the enclosing type"
+	},
+	"@skip": {
+		"prefix": "@skip",
+		"body": "@skip",
+		"description": "Exclude a member from generated code"
 	},
 	"@deprecated": {
 		"prefix": "@deprecated",

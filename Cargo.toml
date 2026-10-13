@@ -26,7 +26,7 @@ xidlc = { version = "0.99.1", default-features = false, features = [
 ] }
 xidl-parser = "0.99.1"
 rust-embed = "8.4.0"
-minijinja = "2.20.0"
+minijinja = "3.0.0"
 axum = "0.8.9"
 utoipa = "5.5.0"
 

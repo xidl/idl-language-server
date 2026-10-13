@@ -510,7 +510,7 @@ dependencies = [
  "dashmap 6.2.1",
  "env_logger",
  "log",
- "minijinja",
+ "minijinja 3.0.0",
  "ropey",
  "rust-embed",
  "serde",
@@ -716,6 +716,12 @@ dependencies = [
  "serde",
  "serde_json",
 ]
+
+[[package]]
+name = "minijinja"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "13345868cfa94eadafc067112ff29271380a820d5594d9ee6ba81a8d00ea5dc2"
 
 [[package]]
 name = "mio"
@@ -1621,7 +1627,7 @@ dependencies = [
  "include_dir",
  "jiff",
  "md5",
- "minijinja",
+ "minijinja 2.24.0",
  "serde",
  "serde_json",
  "tree-sitter",
@@ -1655,7 +1661,7 @@ dependencies = [
  "itertools",
  "jiff",
  "md5",
- "minijinja",
+ "minijinja 2.24.0",
  "scopeguard",
  "semver",
  "serde",
